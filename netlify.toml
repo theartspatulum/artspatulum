@@ -1,0 +1,42 @@
+# The Art Spa Tulum — Netlify config (static site, no build step)
+[build]
+  publish = "site"
+
+# Force the www domain + HTTPS (set www.theartspatulum.mx as primary domain in Netlify)
+[[redirects]]
+  from = "https://theartspatulum.mx/*"
+  to = "https://www.theartspatulum.mx/:splat"
+  status = 301
+  force = true
+
+# Short, shareable booking links
+[[redirects]]
+  from = "/reservar"
+  to = "/es/reservar/"
+  status = 301
+[[redirects]]
+  from = "/booking"
+  to = "/book/"
+  status = 301
+[[redirects]]
+  from = "/menu"
+  to = "/treatments/"
+  status = 301
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    X-Frame-Options = "SAMEORIGIN"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
