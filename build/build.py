@@ -7,6 +7,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "site")
 D = SITE["domain"]
 TODAY = datetime.date.today().isoformat()
+import hashlib
+def _v():
+    h = hashlib.md5()
+    for f in ("assets/css/style.css", "assets/js/main.js"):
+        h.update(open(os.path.join(OUT, f), "rb").read())
+    return h.hexdigest()[:10]
+ASSET_V = _v()
 e = html.escape
 
 CAT = {c[0]: dict(key=c[0], en=c[1], es=c[2], slug=c[3], slug_es=c[4], intro=c[5], intro_es=c[6]) for c in CATEGORIES}
@@ -128,7 +135,7 @@ def head(lang, title, desc, path_en, path_es, lds, og_img=None):
 <link rel="preload" href="/assets/fonts/fraunces-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/jost-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://theartspatulum.simplybook.me">
-<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/style.css?v={ASSET_V}">
 {ld_tags(lds)}
 </head>
 """
@@ -197,7 +204,7 @@ def footer(lang):
 <a class="wa-float" href="{wa(lang)}" rel="noopener" aria-label="{t['whatsapp']}">
   <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.7a10.7 10.7 0 0 1-5.5-1.5l-.4-.2-3.9 1 1-3.8-.2-.4A10.7 10.7 0 1 1 16 26.7zm5.9-8c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5 1-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.4 14.4 0 0 0 5.5 4.9c2 .9 2.8.9 3.9.8a3.3 3.3 0 0 0 2.1-1.5 2.7 2.7 0 0 0 .2-1.5c-.1-.2-.3-.3-.7-.4z"/></svg>
 </a>
-<script src="/assets/js/main.js" defer></script>
+<script src="/assets/js/main.js?v={ASSET_V}" defer></script>
 </body>
 </html>
 """
