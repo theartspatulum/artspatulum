@@ -1,33 +1,31 @@
 /**
- * The Art Spa Tulum — Google review email forwarder
- * Runs inside theartspa.tulum@gmail.com (script.google.com).
- * Every 10 minutes it looks for Google's "new review" emails and sends them to the
- * Reputation Manager on the website, which drafts a reply and asks for approval in Telegram.
- *
- * 1. Paste your secret phrase below (the same value as REVIEWS_EMAIL_SECRET in Netlify).
- * 2. Run "setup" once and allow the permissions.
+ * The Art Spa Tulum — Google review email forwarder (v2)
+ * Remembers each email individually, so new reviews inside an old conversation are not missed.
  */
 const SECRET = 'PASTE-YOUR-SECRET-PHRASE-HERE';
 const ENDPOINT = 'https://www.theartspatulum.mx/.netlify/functions/review-email';
-const DONE_LABEL = 'ArtSpa-review-sent';
 
 function checkReviewEmails() {
-  const label = GmailApp.getUserLabelByName(DONE_LABEL) || GmailApp.createLabel(DONE_LABEL);
-  const query = 'from:google.com newer_than:3d -label:' + DONE_LABEL +
-    ' (review OR reseña OR reseñas OR opinión OR "left a review" OR "dejó una reseña")';
-  const threads = GmailApp.search(query, 0, 20);
+  const props = PropertiesService.getScriptProperties();
+  const done = JSON.parse(props.getProperty('doneIds') || '[]');
+  const query = 'from:google.com newer_than:3d (review OR reseña OR reseñas OR opinión OR "left a review" OR "dejó una reseña")';
+  const threads = GmailApp.search(query, 0, 30);
   threads.forEach(function (thread) {
     thread.getMessages().forEach(function (msg) {
+      const id = msg.getId();
+      if (done.indexOf(id) !== -1) return;
+      if (msg.getDate() < new Date(Date.now() - 3 * 24 * 3600 * 1000)) return;
       const res = UrlFetchApp.fetch(ENDPOINT, {
         method: 'post',
         contentType: 'application/json',
         muteHttpExceptions: true,
-        payload: JSON.stringify({ secret: SECRET, id: msg.getId(), subject: msg.getSubject(), body: msg.getPlainBody(), date: msg.getDate() })
+        payload: JSON.stringify({ secret: SECRET, id: id, subject: msg.getSubject(), body: msg.getPlainBody(), date: msg.getDate() })
       });
       Logger.log(msg.getSubject() + ' -> ' + res.getResponseCode() + ' ' + res.getContentText());
+      if (res.getResponseCode() === 200) done.push(id);
     });
-    thread.addLabel(label);
   });
+  props.setProperty('doneIds', JSON.stringify(done.slice(-300)));
 }
 
 function setup() {
