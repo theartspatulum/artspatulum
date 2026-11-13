@@ -65,6 +65,10 @@ export default async (req) => {
       await proposeReply(chat, { id: "manual-" + Date.now(), author, rating, text: body.trim(), lang: "auto", when: "pasted review" });
       return new Response("ok");
     }
+    if ((text === "/status" || text === "/test") && !process.env.GOOGLE_PLACES_API_KEY) {
+      await send(chat, "This command needs the Google Places key, which is optional. New reviews still arrive here automatically from your Gmail. To reply to any review now, use /reply.");
+      return new Response("ok");
+    }
     if (text === "/status") {
       const p = await fetchPlace();
       await send(chat, `⭐ Google rating: <b>${p.rating}</b> from <b>${p.count}</b> reviews.`);

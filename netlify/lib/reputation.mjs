@@ -63,6 +63,22 @@ Return only the reply text.`;
   return (data.content || []).map((c) => c.text || "").join("").trim();
 }
 
+// ---- Read a Google "new review" notification email ----
+export async function extractReviewFromEmail(subject, body) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL, max_tokens: 800,
+      system: 'You read emails. If the email is a Google Business Profile / Google Maps notification about one or more NEW customer reviews of a business, return JSON {"is_review": true, "reviews": [{"author": "...", "rating": 1-5, "text": "..."}]} with the reviewer name, star rating and full review text exactly as written (text may be empty if only a rating). If it is anything else (tips, reports, replies, marketing), return {"is_review": false, "reviews": []}. Return only JSON.',
+      messages: [{ role: "user", content: `Subject: ${subject}\n\n${String(body).slice(0, 8000)}` }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Claude ${res.status}`);
+  const out = (await res.json()).content?.map((c) => c.text || "").join("") || "{}";
+  try { return JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1)); } catch { return { is_review: false, reviews: [] }; }
+}
+
 // ---- Voice: send a review + draft to Telegram with buttons ----
 export const keyboard = (key) => ({
   inline_keyboard: [
@@ -106,7 +122,8 @@ export async function checkForNewReviews() {
     return "seeded";
   }
   const fresh = place.reviews.filter((r) => !seen.includes(r.id));
-  for (const r of fresh) await proposeReply(chat, r);
+  // When the Gmail forwarder is active it catches every review, so skip here to avoid duplicates.
+  if (!process.env.REVIEWS_EMAIL_SECRET) for (const r of fresh) await proposeReply(chat, r);
   await s.setJSON("seen", Array.from(new Set([...seen, ...ids])).slice(-200));
   await s.setJSON("last-status", { rating: place.rating, count: place.count, at: new Date().toISOString() });
   return `checked: ${fresh.length} new`;
