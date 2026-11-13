@@ -1,6 +1,12 @@
-# The Art Spa Tulum — Netlify config (static site, no build step)
+# The Art Spa Tulum — Netlify config
 [build]
   publish = "site"
+  # Every deploy rebuilds the pages and pulls live prices/treatments from SimplyBook.
+  command = "python3 build/build.py"
+  functions = "netlify/functions"
+
+[build.environment]
+  PYTHON_VERSION = "3.12"
 
 # Force the www domain + HTTPS (set www.theartspatulum.mx as primary domain in Netlify)
 [[redirects]]

@@ -2,6 +2,9 @@
 """Static site generator for The Art Spa Tulum. Run: python3 build/build.py"""
 import json, os, shutil, html, datetime
 from data import SITE, CATEGORIES, SERVICES, FAQ
+import simplybook_sync
+SYNC_REPORT = simplybook_sync.apply(SERVICES) if os.environ.get("NO_SYNC") != "1" else "sync disabled"
+print(SYNC_REPORT)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "site")
@@ -16,6 +19,17 @@ def _v():
 ASSET_V = _v()
 e = html.escape
 
+def _min_massage():
+    m = [s['price'] for s in SERVICES if s['cat'] == 'massages' or 'massages' in s.get('also', [])]
+    return f"${min(m):,}" if m else "$1,250"
+def _price(i, default):
+    x = next((s for s in SERVICES if s["id"] == i), None)
+    return f"${x['price']:,}" if x else default
+_PV = {"{MINM}": None, "{RESET}": _price(26, "$1,249"), "{COUPLE}": _price(27, "$2,599"), "{SAUNA}": _price(18, "$600")}
+def _fill(t):
+    for k, v in _PV.items(): t = t.replace(k, v if v else _min_massage())
+    return t
+FAQ[:] = [tuple(_fill(x) for x in row) for row in FAQ]
 CAT = {c[0]: dict(key=c[0], en=c[1], es=c[2], slug=c[3], slug_es=c[4], intro=c[5], intro_es=c[6]) for c in CATEGORIES}
 
 # ---------------------------------------------------------------- URLs
@@ -109,6 +123,8 @@ def ld_tags(lds):
 # ---------------------------------------------------------------- layout
 def head(lang, title, desc, path_en, path_es, lds, og_img=None):
     canon = D + (path_en if lang == "en" else path_es)
+    desc = desc.replace("{MINM}", _min_massage())
+    if len(desc) > 158: desc = desc[:155].rsplit(" ", 1)[0].rstrip(",.;:") + "…"
     og = og_img or (D + "/assets/img/og.jpg")
     return f"""<!doctype html>
 <html lang="{lang}">
@@ -240,10 +256,10 @@ CAT_IMG = {"specials": ("/assets/img/cat-specials.jpg", "50% 35%"), "massages": 
 
 def build_home(lang):
     t = T[lang]; en = lang == "en"
-    title = ("The Art Spa Tulum | Massage, Couples Spa, Sauna & Facials in La Veleta"
-             if en else "The Art Spa Tulum | Masajes, Spa en Pareja, Sauna y Faciales en La Veleta")
-    desc = ("Gallery-inspired day spa in La Veleta, Tulum. Massages from $1,250 MXN, couples rituals, facials, private sauna and hydropool. Open daily 10:00–19:00. Book online."
-            if en else "Spa inspirado en una galería en La Veleta, Tulum. Masajes desde $1,250 MXN, rituales en pareja, faciales, sauna privada e hidroalberca. Abierto diario 10:00–19:00. Reserva en línea.")
+    title = ("The Art Spa Tulum | Massage, Couples Spa & Sauna in La Veleta"
+             if en else "The Art Spa Tulum | Masajes, Spa en Pareja y Sauna en Tulum")
+    desc = ("Gallery-inspired day spa in La Veleta, Tulum. Massages from {MINM} MXN, couples rituals, facials, private sauna and hydropool. Open daily 10:00–19:00. Book online."
+            if en else "Spa inspirado en una galería en La Veleta, Tulum. Masajes desde {MINM} MXN, rituales en pareja, faciales, sauna privada e hidroalberca. Abierto diario 10:00–19:00. Reserva en línea.")
     featured = [next(x for x in SERVICES if x["id"] == i) for i in (26, 28, 27, 5, 31, 12)]
     order = ["specials", "massages", "couples", "specialty", "facials", "body", "sauna"]
     tiles = "".join(f"""<a class="coll{' wide' if k in ('specials', 'massages', 'couples') else ''}" href="{u('cat', lang, CAT[k])}"><img src="{CAT_IMG[k][0]}" style="object-position:{CAT_IMG[k][1]}" alt="" loading="lazy" decoding="async"><span class="coll-txt"><span class="coll-t">{CAT[k]['en'] if en else CAT[k]['es']}</span><span class="coll-c">{t['from_']} {money(min(s['price'] for s in svc_in(k)))}</span></span></a>"""
@@ -334,9 +350,9 @@ def visit_block(lang):
 # ---------------------------------------------------------------- TREATMENTS INDEX
 def build_treatments(lang):
     t = T[lang]; en = lang == "en"
-    title = "Spa Menu & Prices | Massages, Facials & Rituals in Tulum — The Art Spa" if en else "Menú y Precios | Masajes, Faciales y Rituales en Tulum — The Art Spa"
-    desc = ("Full spa menu with prices in MXN: massages from $1,250, facials $1,199, couples rituals, body rituals, sauna & hydropool. La Veleta, Tulum."
-            if en else "Menú completo con precios en MXN: masajes desde $1,250, faciales $1,199, rituales en pareja, rituales corporales, sauna e hidroalberca. La Veleta, Tulum.")
+    title = "Spa Menu & Prices | Massages, Facials & Rituals in Tulum — The Art Spa" if en else "Menú y Precios de Spa en Tulum | The Art Spa"
+    desc = ("Full spa menu with prices in MXN: massages from {MINM}, facials $1,199, couples rituals, body rituals, sauna & hydropool. La Veleta, Tulum."
+            if en else "Menú completo con precios en MXN: masajes desde {MINM}, faciales $1,199, rituales en pareja, rituales corporales, sauna e hidroalberca. La Veleta, Tulum.")
     secs = ""
     for c in CAT.values():
         rows = "".join(f"""<li><a href="{u('svc', lang, s)}"><span class="r-n">{t['plate']} {num(s)}</span><span class="r-t">{e(name(s, lang))}</span><span class="r-d">{s['dur']} {t['min']}</span><span class="r-p">{money(s['price'])}</span></a></li>"""
@@ -410,6 +426,7 @@ def build_svc(s, lang):
     c = CAT[s["cat"]]; nm = name(s, lang)
     note = s.get("note" if en else "note_es", "")
     title = f"{nm} in Tulum | {money(s['price'])} | The Art Spa" if en else f"{nm} en Tulum | {money(s['price'])} | The Art Spa"
+    if len(title) > 65: title = title.rsplit(" | ", 1)[0]
     summ = s["sum" if en else "sum_es"]
     desc = (summ[:150].rsplit(" ", 1)[0] + "…") if len(summ) > 155 else summ
     inc = "".join(f"<li>{e(x)}</li>" for x in s["inc" if en else "inc_es"])
@@ -467,7 +484,7 @@ def build_svc(s, lang):
 # ---------------------------------------------------------------- SPACE
 def build_space(lang):
     en = lang == "en"; t = T[lang]
-    title = "The Space: Gallery Spa with Sauna & Hydropool in La Veleta, Tulum | The Art Spa" if en else "El Espacio: Spa Galería con Sauna e Hidroalberca en La Veleta, Tulum | The Art Spa"
+    title = "The Space: Gallery Spa, Sauna & Hydropool in Tulum | The Art Spa" if en else "El Espacio: Spa Galería, Sauna e Hidroalberca | The Art Spa"
     desc = ("Step inside Tulum's gallery-inspired spa: original photography, paintings and wall art by artists, a private sauna, cold hydropool and couples massage suite."
             if en else "Conoce el spa galería de Tulum: fotografía, pinturas y murales de artistas, sauna privada, hidroalberca fría y suite de masaje para parejas.")
     rooms = [
@@ -511,7 +528,7 @@ def build_book(lang):
 def build_faq(lang):
     en = lang == "en"; t = T[lang]
     pairs = [(q, a) if en else (qe, ae) for q, a, qe, ae in FAQ]
-    title = "FAQ: Prices, Hours, Location & Booking | The Art Spa Tulum" if en else "Preguntas Frecuentes: Precios, Horario y Ubicación | The Art Spa Tulum"
+    title = "FAQ: Prices, Hours, Location & Booking | The Art Spa Tulum" if en else "Preguntas Frecuentes: Precios, Horario y Ubicación | The Art Spa"
     desc = ("Answers about The Art Spa Tulum: massage prices, couples massage, sauna and hydropool, opening hours, location in La Veleta and how to book."
             if en else "Respuestas sobre The Art Spa Tulum: precios de masajes, masaje en pareja, sauna e hidroalberca, horario, ubicación en La Veleta y cómo reservar.")
     body = f"""<section class="page-head narrow"><p class="label">FAQ</p><h1>{'Frequently asked questions' if en else 'Preguntas frecuentes'}</h1></section>
@@ -611,7 +628,7 @@ def build_llms():
              f"- Online booking: {D}/book/ (instant confirmation via SimplyBook.me)",
              f"- Instagram: {SITE['instagram']}",
              "- Facilities: private hot sauna, cold hydropool, massage rooms incl. couples suite, art gallery interior",
-             "- Price range: $450–$5,800 MXN. Massages from $1,250 MXN (60 min). Couples packages from $2,599 MXN for two.",
+             _fill("- Price range: $450–$5,800 MXN. Massages from {MINM} MXN (60 min). Couples packages from {COUPLE} MXN for two."),
              "- Neighborhood: La Veleta, a few minutes from downtown Tulum and the Hotel Zone road", "",
              "## Pages",
              f"- [Spa menu & prices]({D}/treatments/)", f"- [Book online]({D}/book/)", f"- [The space]({D}/the-space/)",
@@ -631,4 +648,5 @@ if __name__ == "__main__":
         for c in CAT.values(): build_cat(c, lang)
         for s in SERVICES: build_svc(s, lang)
     build_404(); n = build_sitemap(); build_robots(); build_llms()
+    write("/sync-status.txt", f"{datetime.datetime.utcnow().isoformat(timespec='minutes')} UTC\n{SYNC_REPORT}\n")
     print("built; sitemap urls:", n)
