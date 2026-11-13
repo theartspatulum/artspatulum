@@ -1,2 +1,2 @@
-2026-11-13T01:47 UTC
-SimplyBook sync skipped (URLError); using build/data.py
+2026-11-13T17:57 UTC
+sync disabled

@@ -167,7 +167,10 @@ def header(lang, path_other, current="", home=False):
   <a class="wordmark" href="{u('home', lang)}" aria-label="The Art Spa Tulum — home">
     <span class="wm-name">The Art Spa</span><span class="wm-place">Tulum</span>
   </a>
-  <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav">{t['menu']}</button>
+  <div class="head-actions">
+    <a class="lang-mobile" href="{path_other}" hreflang="{'es' if lang=='en' else 'en'}" lang="{'es' if lang=='en' else 'en'}" aria-label="{t['switch_label']}"><span class="{'on' if lang=='en' else ''}">EN</span><span class="sep">/</span><span class="{'on' if lang=='es' else ''}">ES</span></a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav">{t['menu']}</button>
+  </div>
   <nav id="site-nav" class="site-nav" aria-label="Main">
     {nav('treatments', u('treatments', lang), t['treatments'])}
     {nav('specials', u('cat', lang, CAT['specials']), t['specials'])}
