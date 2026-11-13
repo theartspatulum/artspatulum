@@ -1,6 +1,6 @@
 // Receives messages and button taps from Telegram.
 import { send, tg, esc, webhookSecret, hasTelegram } from "../lib/telegram.mjs";
-import { store, getChat, fetchPlace, proposeReply, finalCopy, draftReply } from "../lib/reputation.mjs";
+import { store, getChat, fetchPlace, proposeReply, finalCopy, draftReply, keyboard } from "../lib/reputation.mjs";
 
 export default async (req) => {
   if (!hasTelegram()) return new Response("no token");
@@ -24,10 +24,13 @@ export default async (req) => {
         await finalCopy(chat, rec);
       } else if (action === "ed") {
         await s.set("awaiting-edit", key);
-        await send(chat, `✏️ Send me your version of the reply. Or describe the change (for example: <i>"shorter and mention the sauna"</i>) starting with <b>/change</b>.`);
-      } else if (action === "re") {
-        rec.draft = await draftReply(rec, "Write a different version from before."); await s.setJSON(key, rec);
-        await send(chat, `🔄 <b>New version:</b>\n${esc(rec.draft)}`, { reply_markup: { inline_keyboard: [[{ text: "✅ Approve", callback_data: `ok:${key}` }, { text: "✏️ Edit", callback_data: `ed:${key}` }], [{ text: "🔄 New version", callback_data: `re:${key}` }]] } });
+        await send(chat, `✏️ Three ways to edit:\n• Send your own reply text, and I'll use it exactly.\n• Send <b>/change</b> + what to change (e.g. <i>/change shorter and mention the sauna</i>).\n• Send <b>/facts</b> + what really happened (e.g. <i>/facts she arrived 40 minutes late and we still gave the full massage</i>) for a firm, factual reply.`);
+      } else if (["re", "tw", "tf", "ts"].includes(action)) {
+        const notes = { re: "Write a different version from before.", tw: "Tone: WARM.", tf: "Tone: FIRM." + (rec.facts ? " Facts from the owner: " + rec.facts : " No facts given yet; stay factual and general."), ts: "Tone: SHORT." };
+        const labels = { re: "🔄 New version", tw: "💛 Warmer version", tf: "🛡️ Firm version", ts: "✂️ Shorter version" };
+        rec.draft = await draftReply(rec, notes[action]); await s.setJSON(key, rec);
+        const tip = action === "tf" && !rec.facts ? "\n\n<i>Tip: tap ✏️ Edit and send</i> <b>/facts</b> <i>followed by what really happened, and I'll use it in the firm reply.</i>" : "";
+        await send(chat, `${labels[action]}:\n${esc(rec.draft)}${tip}`, { reply_markup: keyboard(key) });
       }
       return new Response("ok");
     }
@@ -62,10 +65,15 @@ export default async (req) => {
       const key = await s.get("awaiting-edit");
       if (key) {
         const rec = await s.get(key, { type: "json" });
-        if (text.startsWith("/change")) {
+        if (text.startsWith("/facts")) {
+          rec.facts = text.replace("/facts", "").trim();
+          rec.draft = await draftReply(rec, "Tone: FIRM. Facts from the owner: " + rec.facts);
+          await s.setJSON(key, rec);
+          await send(chat, `🛡️ <b>Firm reply using your facts:</b>\n${esc(rec.draft)}`, { reply_markup: keyboard(key) });
+        } else if (text.startsWith("/change")) {
           rec.draft = await draftReply(rec, text.replace("/change", "").trim());
           await s.setJSON(key, rec);
-          await send(chat, `✍️ <b>Updated reply:</b>\n${esc(rec.draft)}`, { reply_markup: { inline_keyboard: [[{ text: "✅ Approve", callback_data: `ok:${key}` }, { text: "✏️ Edit", callback_data: `ed:${key}` }]] } });
+          await send(chat, `✍️ <b>Updated reply:</b>\n${esc(rec.draft)}`, { reply_markup: keyboard(key) });
         } else {
           rec.draft = text; rec.state = "approved";
           await s.setJSON(key, rec); await s.delete("awaiting-edit");

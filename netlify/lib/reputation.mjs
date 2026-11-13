@@ -41,7 +41,11 @@ Rules:
 - Reply in the same language as the review (Spanish reviews get Spanish replies).
 - Warm, personal, sincere. 2-4 short sentences. Mention one specific thing the guest said. Use their first name if given.
 - Never invent facts, offers or discounts. No hashtags, no emojis except at most one.
-- For reviews of 3 stars or less: thank them, apologise sincerely without arguing, and invite them to message us on WhatsApp so we can make it right.
+- For reviews of 3 stars or less (default tone): professional and calm. Thank them, acknowledge their experience without admitting things that are not confirmed, and invite them to message us on WhatsApp so we can understand and make it right.
+- Follow the owner's tone instruction when given:
+  * WARM: extra friendly and grateful.
+  * FIRM: polite but clear. If the review contains claims the owner says are untrue, respectfully set the record straight with the facts the owner provides (never invent facts), do not apologise for things that did not happen, stay professional (no insults, no sarcasm, no personal details about the guest), and invite them to contact us directly. Remember future guests read this reply.
+  * SHORT: one or two sentences.
 - End with: "— The Art Spa Tulum team" (Spanish: "— El equipo de The Art Spa Tulum").
 Return only the reply text.`;
   const user = `Review by ${review.author} (${review.rating} stars):\n"""${review.text || "(no text, rating only)"}"""${note ? `\n\nInstruction from the owner: ${note}` : ""}`;
@@ -60,6 +64,13 @@ Return only the reply text.`;
 }
 
 // ---- Voice: send a review + draft to Telegram with buttons ----
+export const keyboard = (key) => ({
+  inline_keyboard: [
+    [{ text: "✅ Approve", callback_data: `ok:${key}` }, { text: "✏️ Edit", callback_data: `ed:${key}` }],
+    [{ text: "💛 Warmer", callback_data: `tw:${key}` }, { text: "🛡️ Firm", callback_data: `tf:${key}` }, { text: "✂️ Shorter", callback_data: `ts:${key}` }],
+    [{ text: "🔄 New version", callback_data: `re:${key}` }],
+  ],
+});
 const stars = (n) => "⭐".repeat(Math.max(0, Math.min(5, n || 0)));
 export async function proposeReply(chat, review, { test = false } = {}) {
   const draft = await draftReply(review);
@@ -68,15 +79,8 @@ export async function proposeReply(chat, review, { test = false } = {}) {
   const warn = review.rating <= 3 ? "\n⚠️ <b>Low rating, please read carefully.</b>" : "";
   await send(
     chat,
-    `${test ? "🧪 <b>Test</b>\n" : ""}🆕 <b>Google review</b> ${stars(review.rating)}\n<b>${esc(review.author)}</b> · ${esc(review.when)}\n<i>${esc(review.text || "(rating only, no text)")}</i>${warn}\n\n✍️ <b>Suggested reply:</b>\n${esc(draft)}`,
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "✅ Approve", callback_data: `ok:${key}` }, { text: "✏️ Edit", callback_data: `ed:${key}` }],
-          [{ text: "🔄 New version", callback_data: `re:${key}` }],
-        ],
-      },
-    }
+    `${test ? "🧪 <b>Test</b>\n" : ""}🆕 <b>Google review</b> ${stars(review.rating)}\n<b>${esc(review.author)}</b> · ${esc(review.when)}\n<i>${esc(review.text || "(rating only, no text)")}</i>${warn}\n\n✍️ <b>Suggested reply:</b>\n${esc(draft)}\n\n<i>Nothing is posted without your approval.</i>`,
+    { reply_markup: keyboard(key) }
   );
 }
 
