@@ -43,7 +43,7 @@ export default async (req) => {
     if (text.startsWith("/start")) {
       if (!owner) {
         await s.set("chat", chat);
-        await send(chat, `👋 Hi! I'm your <b>Art Spa Assistant</b>.\nThis chat is now connected. I'll send Google review replies here for your approval.\n\nCommands:\n/test – try it with your latest review\n/status – current Google rating`);
+        await send(chat, `👋 Hi! I'm your <b>Art Spa Assistant</b>.\nThis chat is now connected. I'll send Google review replies here for your approval.\n\nCommands:\n/test – try it with your latest review\n/reply – paste any review to get a reply draft\n/status – current Google rating`);
       } else if (chat === String(owner)) {
         await send(chat, "✅ You're already connected. Send /test or /status.");
       } else {
@@ -53,6 +53,18 @@ export default async (req) => {
     }
     if (!owner || chat !== String(owner)) return new Response("ok");
 
+    if (text.startsWith("/reply")) {
+      // Paste any review: "/reply 5 Maria: Amazing massage..." (stars and name optional)
+      let body = text.replace(/^\/reply\s*/, "");
+      if (!body) { await send(chat, "Paste the review after /reply, for example:\n<code>/reply 5 Maria: The hot stone massage was amazing!</code>\n(stars and name are optional)"); return new Response("ok"); }
+      let rating = 5, author = "Guest";
+      const m = body.match(/^([1-5])\s*(?:stars?|estrellas?|⭐)?\s*/i);
+      if (m) { rating = Number(m[1]); body = body.slice(m[0].length); }
+      const n = body.match(/^([^:\n]{2,40}):\s*/);
+      if (n) { author = n[1].trim(); body = body.slice(n[0].length); }
+      await proposeReply(chat, { id: "manual-" + Date.now(), author, rating, text: body.trim(), lang: "auto", when: "pasted review" });
+      return new Response("ok");
+    }
     if (text === "/status") {
       const p = await fetchPlace();
       await send(chat, `⭐ Google rating: <b>${p.rating}</b> from <b>${p.count}</b> reviews.`);
@@ -80,7 +92,7 @@ export default async (req) => {
           await finalCopy(chat, rec);
         }
       } else {
-        await send(chat, "Commands: /test, /status. New reviews will appear here automatically.");
+        await send(chat, "Commands: /test, /reply, /status. New reviews will appear here automatically.");
       }
     }
   } catch (e) {
