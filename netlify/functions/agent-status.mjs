@@ -1,5 +1,6 @@
 // Shows which agent settings are present (yes/no only — never the values).
 import { getStore } from "@netlify/blobs";
+import { services, therapists, freeTimes } from "../lib/simplybook.mjs";
 
 export default async () => {
   const has = (k) => (process.env[k] ? "✅ set" : "❌ missing");
@@ -15,6 +16,21 @@ export default async () => {
     const list = (await getStore("reputation").get("email-log", { type: "json" })) || [];
     emails = list.map((e) => `  ${new Date(e.at).toLocaleString("en-US", { timeZone: "America/Cancun" })} · ${e.subject} → ${e.outcome}`);
   } catch {}
+  let sb = "❌ SIMPLYBOOK_API_KEY missing";
+  if (process.env.SIMPLYBOOK_API_KEY) {
+    try {
+      const ev = Object.values(await services() || {}).filter((e) => e.is_public !== "0" && e.is_active !== "0");
+      const un = Object.values(await therapists() || {});
+      const durs = [...new Set(ev.map((e) => Number(e.duration)))].sort((a, b) => a - b).join(", ");
+      const d = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      let slots = "";
+      try {
+        const m = await freeTimes(d, d, ev[0].id);
+        slots = ` · test: "${ev[0].name}" has ${(m?.[d] || []).length} free start times tomorrow`;
+      } catch (e) { slots = " · free-times test failed: " + String(e.message).slice(0, 80); }
+      sb = `✅ connected — ${ev.length} services, ${un.length} therapists/rooms, lengths: ${durs} min${slots}`;
+    } catch (e) { sb = "❌ key set but SimplyBook said: " + String(e.message).slice(0, 120); }
+  }
   const lines = [
     "The Art Spa — agent status",
     "",
@@ -24,6 +40,8 @@ export default async () => {
     `Reviews email secret ...... ${has("REVIEWS_EMAIL_SECRET")}`,
     `Google Places key ......... ${process.env.GOOGLE_PLACES_API_KEY ? "✅ set" : "— optional, not set"}`,
     `SimplyBook daily hook ..... ${has("BUILD_HOOK_URL")}`,
+    `SimplyBook secret key ..... ${has("SIMPLYBOOK_SECRET_KEY")}`,
+    `SimplyBook booking API .... ${sb}`,
     "",
     `Last contact from Gmail ... ${last}`,
     "",
