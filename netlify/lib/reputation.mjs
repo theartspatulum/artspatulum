@@ -93,7 +93,7 @@ export async function proposeReply(chat, review, { test = false } = {}) {
   const key = "r-" + Buffer.from(review.id).toString("base64url").slice(-40);
   await store().setJSON(key, { ...review, draft, state: "pending" });
   const warn = review.rating <= 3 ? "\n⚠️ <b>Low rating, please read carefully.</b>" : "";
-  await send(
+  return await send(
     chat,
     `${test ? "🧪 <b>Test</b>\n" : ""}🆕 <b>Google review</b> ${stars(review.rating)}\n<b>${esc(review.author)}</b> · ${esc(review.when)}\n<i>${esc(review.text || "(rating only, no text)")}</i>${warn}\n\n✍️ <b>Suggested reply:</b>\n${esc(draft)}\n\n<i>Nothing is posted without your approval.</i>`,
     { reply_markup: keyboard(key) }

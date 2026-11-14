@@ -10,6 +10,11 @@ export default async () => {
     const l = await getStore("reputation").get("last-email-call", { type: "json" });
     if (l) last = `${new Date(l.at).toLocaleString("en-US", { timeZone: "America/Cancun" })} (Tulum time) — ${l.result}`;
   } catch {}
+  let emails = [];
+  try {
+    const list = (await getStore("reputation").get("email-log", { type: "json" })) || [];
+    emails = list.map((e) => `  ${new Date(e.at).toLocaleString("en-US", { timeZone: "America/Cancun" })} · ${e.subject} → ${e.outcome}`);
+  } catch {}
   const lines = [
     "The Art Spa — agent status",
     "",
@@ -21,6 +26,9 @@ export default async () => {
     `SimplyBook daily hook ..... ${has("BUILD_HOOK_URL")}`,
     "",
     `Last contact from Gmail ... ${last}`,
+    "",
+    "Last review emails received:",
+    ...(emails.length ? emails : ["  (none yet)"]),
   ];
   return new Response(lines.join("\n"), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
 };
