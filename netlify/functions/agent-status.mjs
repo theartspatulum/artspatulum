@@ -1,7 +1,7 @@
 // Shows which agent settings are present (yes/no only — never the values).
 import { getStore } from "@netlify/blobs";
 import { services, therapists, freeTimes } from "../lib/simplybook.mjs";
-import { businessAccounts, whatsappNumbers } from "../lib/telnyx.mjs";
+import { businessAccounts, whatsappNumbers, tx } from "../lib/telnyx.mjs";
 
 export default async () => {
   const has = (k) => (process.env[k] ? "✅ set" : "❌ missing");
@@ -38,7 +38,12 @@ export default async () => {
       const b = (await businessAccounts()).data || [];
       const n = (await whatsappNumbers()).data || [];
       const nums = n.map((x) => `${x.phone_number || x.display_phone_number || "?"} (${[x.status, x.coexistence_state, x.is_on_biz_app ? "app+API" : ""].filter(Boolean).join(", ")})`).join("; ");
-      wa = `✅ key works — ${b.length} WhatsApp business account(s): ${b.map((x) => x.name || x.id).join(", ") || "none"} · numbers: ${nums || "none yet"}`;
+      let su = "";
+      for (const sid of ["01a1db1d-666c-749e-b3ea-1016889c1c36", "01a1db34-c207-7055-8efa-bd0530e5d68b"]) {
+        try { const r = await tx(`/whatsapp/signup/${sid}/status`); su += ` · signup ${sid.slice(0, 8)}: ${JSON.stringify(r.data || r).slice(0, 400)}`; }
+        catch (e) { su += ` · signup ${sid.slice(0, 8)}: ${String(e.message).slice(0, 160)}`; }
+      }
+      wa = `✅ key works${su} — ${b.length} WhatsApp business account(s): ${b.map((x) => x.name || x.id).join(", ") || "none"} · numbers: ${nums || "none yet"}`;
     } catch (e) { wa = "❌ key set but Telnyx said: " + String(e.message).slice(0, 160); }
   }
   const lines = [
