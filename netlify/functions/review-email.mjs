@@ -12,6 +12,10 @@ export default async (req) => {
     await note(!secret ? "rejected: REVIEWS_EMAIL_SECRET not set on website" : "rejected: secret phrase does not match (" + String(data.secret || "").length + " characters received)");
     return new Response("forbidden", { status: 403 });
   }
+  if (data.ping) {
+    await note(`accepted: Gmail check ran — found ${Number(data.found) || 0} Google review email(s) from the last 7 days, ${Number(data.fresh) || 0} new`);
+    return Response.json({ status: "ping ok" });
+  }
   if (!process.env.ANTHROPIC_API_KEY) return Response.json({ status: "waiting for ANTHROPIC_API_KEY" });
 
   const s = store();
