@@ -1,6 +1,7 @@
 // Shows which agent settings are present (yes/no only — never the values).
 import { getStore } from "@netlify/blobs";
 import { services, therapists, freeTimes } from "../lib/simplybook.mjs";
+import { businessAccounts, whatsappNumbers } from "../lib/telnyx.mjs";
 
 export default async () => {
   const has = (k) => (process.env[k] ? "✅ set" : "❌ missing");
@@ -31,6 +32,15 @@ export default async () => {
       sb = `✅ connected — ${ev.length} services, ${un.length} therapists/rooms, lengths: ${durs} min${slots}`;
     } catch (e) { sb = "❌ key set but SimplyBook said: " + String(e.message).slice(0, 120); }
   }
+  let wa = "❌ TELNYX_API_KEY missing";
+  if (process.env.TELNYX_API_KEY) {
+    try {
+      const b = (await businessAccounts()).data || [];
+      const n = (await whatsappNumbers()).data || [];
+      const nums = n.map((x) => `${x.phone_number || x.display_phone_number || "?"} (${[x.status, x.coexistence_state, x.is_on_biz_app ? "app+API" : ""].filter(Boolean).join(", ")})`).join("; ");
+      wa = `✅ key works — ${b.length} WhatsApp business account(s): ${b.map((x) => x.name || x.id).join(", ") || "none"} · numbers: ${nums || "none yet"}`;
+    } catch (e) { wa = "❌ key set but Telnyx said: " + String(e.message).slice(0, 160); }
+  }
   const lines = [
     "The Art Spa — agent status",
     "",
@@ -42,6 +52,7 @@ export default async () => {
     `SimplyBook daily hook ..... ${has("BUILD_HOOK_URL")}`,
     `SimplyBook secret key ..... ${has("SIMPLYBOOK_SECRET_KEY")}`,
     `SimplyBook booking API .... ${sb}`,
+    `WhatsApp via Telnyx ....... ${wa}`,
     "",
     `Last contact from Gmail ... ${last}`,
     "",
