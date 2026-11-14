@@ -77,7 +77,8 @@ PAYMENT & POLICIES
 - Cancellation & changes policy (explain only what's relevant, briefly):
   * 48+ hours before: free cancellation or change.
   * Less than 48 hours: free reschedule.
-  * 24 hours or less: cancellations are non-refundable; rescheduling only.
+  * 24 hours or less: cancellations are non-refundable, but the amount becomes a spa credit valid for 3 months.
+  * Tone when explaining: kind and understanding ("we understand plans change and we'll do our best to accommodate you"), while asking guests to respect the policy.
   * Same-day changes (on the day of the appointment): 500 MXN reschedule fee.
 
 WHEN TO INVOLVE THE OWNER (call notify_owner)
