@@ -1,6 +1,13 @@
 // Receives messages and button taps from Telegram.
 import { send, tg, esc, webhookSecret, hasTelegram } from "../lib/telegram.mjs";
 import { store, getChat, fetchPlace, proposeReply, finalCopy, draftReply, keyboard } from "../lib/reputation.mjs";
+import { resetConversation } from "../lib/concierge.mjs";
+
+// Hand work to the background concierge (it may take up to ~30 seconds).
+async function runConcierge(req, payload) {
+  const base = process.env.URL || new URL(req.url).origin;
+  await fetch(base + "/.netlify/functions/concierge-background", { method: "POST", body: JSON.stringify({ ...payload, key: webhookSecret() }) });
+}
 
 export default async (req) => {
   if (!hasTelegram()) return new Response("no token");
@@ -17,6 +24,11 @@ export default async (req) => {
       await tg("answerCallbackQuery", { callback_query_id: q.id });
       if (owner && chat !== String(owner)) return new Response("ok");
       const [action, key] = q.data.split(":");
+      if (action === "cxok" || action === "cxno") {
+        await send(chat, action === "cxok" ? "✅ Got it, I'll tell the guest." : "❌ Got it, I'll offer the guest other times.");
+        await runConcierge(req, { pending: key, approved: action === "cxok", channel: "telegram", chat });
+        return new Response("ok");
+      }
       const rec = await s.get(key, { type: "json" });
       if (!rec) { await send(chat, "I couldn't find that review anymore."); return new Response("ok"); }
       if (action === "ok") {
@@ -52,6 +64,20 @@ export default async (req) => {
       return new Response("ok");
     }
     if (!owner || chat !== String(owner)) return new Response("ok");
+
+    // ---- Concierge test mode: you chat as a guest ----
+    if (text === "/guest" || text === "/guest on") {
+      await s.set("guest-mode", "1"); await resetConversation("tg-test");
+      await send(chat, "🧪 <b>Guest test mode is ON.</b>\nWrite to me as if you were a guest on WhatsApp, in any language. I'll answer like the concierge, with real free times from SimplyBook. Bookings are only simulated.\n\n/newguest – start over as a new guest\n/guest off – back to normal");
+      return new Response("ok");
+    }
+    if (text === "/guest off") { await s.delete("guest-mode"); await send(chat, "Guest test mode is OFF."); return new Response("ok"); }
+    if (text === "/newguest") { await resetConversation("tg-test"); await send(chat, "🆕 New guest. Say hi!"); return new Response("ok"); }
+    if (!text.startsWith("/") && (await s.get("guest-mode")) && !(await s.get("awaiting-edit"))) {
+      await tg("sendChatAction", { chat_id: chat, action: "typing" });
+      await runConcierge(req, { conv: "tg-test", text, channel: "telegram", chat, test: true, guest: { name: "Test guest" } });
+      return new Response("ok");
+    }
 
     if (text.startsWith("/reply")) {
       // Paste any review: "/reply 5 Maria: Amazing massage..." (stars and name optional)
@@ -96,7 +122,7 @@ export default async (req) => {
           await finalCopy(chat, rec);
         }
       } else {
-        await send(chat, "Commands: /test, /reply, /status. New reviews will appear here automatically.");
+        await send(chat, "Commands: /reply – draft a review reply · /guest – test the WhatsApp concierge. New reviews appear here automatically.");
       }
     }
   } catch (e) {
