@@ -275,3 +275,13 @@ ul.plain{list-style:none;padding:0;margin:0}
   .nav-toggle{padding:8px 12px;font-size:12px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+/* Therapeutic page */
+.concerns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(28px,4vw,56px)}
+.concern{border-top:1px solid var(--line);padding-top:28px}
+.concern h2{font-size:clamp(24px,2.4vw,32px)}
+.concern h2 .in{color:var(--gold);font-style:italic}
+.good-for{margin:4px 0 24px;font-size:15px}
+.good-for .label{margin-right:8px}
+.center-chips{justify-content:center}
+.thera-band .sec-head{text-align:center}
+@media (max-width:760px){.concerns{grid-template-columns:1fr}}

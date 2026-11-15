@@ -43,6 +43,7 @@ def u(page, lang, obj=None):
     if page == "book": return "/book/" if en else "/es/reservar/"
     if page == "faq": return "/faq/" if en else "/es/preguntas-frecuentes/"
     if page == "contact": return "/contact/" if en else "/es/contacto/"
+    if page == "thera": return "/therapeutic-massage/" if en else "/es/masaje-terapeutico/"
     raise KeyError(page)
 
 T = {  # UI strings
@@ -208,7 +209,7 @@ def footer(lang):
     </div>
     <div>
       <h2 class="label">{t['treatments']}</h2>
-      <ul class="plain">{cats}</ul>
+      <ul class="plain">{cats}<li><a href="{u('thera', lang)}">{'Sports &amp; therapeutic massage' if lang=='en' else 'Masaje deportivo y terapéutico'}</a></li></ul>
     </div>
   </div>
   <div class="foot-bottom">
@@ -296,6 +297,12 @@ def build_home(lang):
   <p class="center cta-row"><a class="btn btn-line" href="{u('treatments', lang)}">{t['all']}</a></p>
 </section></div>
 
+<section class="section thera-band">
+  <header class="sec-head"><p class="label">{'Therapeutic &amp; recovery' if en else 'Terapéutico y recuperación'}</p><h2>{'Massage that <em>works</em>' if en else 'Masaje que <em>funciona</em>'}</h2>
+  <p class="lede center">{'Sports massage, muscle recovery, lymphatic drainage and relief for lower back and neck pain.' if en else 'Masaje deportivo, recuperación muscular, drenaje linfático y alivio para dolor de espalda baja y cuello.'}</p></header>
+  <nav class="chips center-chips">{''.join(f'<a href="{u("thera", lang)}#{k}">{a if en else b}</a>' for k, a, b, *_ in CONCERNS)}</nav>
+</section>
+
 <section class="section split">
   <div class="split-img"><img src="{SITE['img_base']}7153d334c482fcd62e6ffe5e6022580f.PNG" alt="{'Massage room at The Art Spa Tulum' if en else 'Cabina de masaje en The Art Spa Tulum'}" loading="lazy" decoding="async" width="800" height="600"></div>
   <div>
@@ -363,7 +370,7 @@ def build_treatments(lang):
         secs += f"""<section class="menu-sec" id="{c['slug']}"><header><h2><a href="{u('cat', lang, c)}">{c['en'] if en else c['es']}</a></h2><p class="muted">{e(c['intro'] if en else c['intro_es'])}</p></header><ul class="price-list">{rows}</ul></section>"""
     body = f"""<section class="page-head"><p class="label">{'Price list' if en else 'Lista de precios'} · MXN</p><h1>{'Spa menu &amp; prices' if en else 'Menú y precios'}</h1>
 <p class="lede">{'Every treatment, every price. All prices in Mexican pesos. Tap any work to see what is included, or book instantly.' if en else 'Todos los tratamientos y precios en pesos mexicanos. Toca cualquiera para ver qué incluye o reserva al instante.'}</p>
-<nav class="chips">{''.join(f'<a href="#{c["slug"]}">{c["en"] if en else c["es"]}</a>' for c in CAT.values())}</nav></section>
+<nav class="chips">{''.join(f'<a href="#{c["slug"]}">{c["en"] if en else c["es"]}</a>' for c in CAT.values())}<a href="{u('thera', lang)}">{'Sports &amp; therapeutic' if en else 'Deportivo y terapéutico'} →</a></nav></section>
 <div class="section">{secs}</div>"""
     lds = [crumbs_ld([("Home" if en else "Inicio", u("home", lang)), (t["treatments"], u("treatments", lang))]),
            {"@context": "https://schema.org", "@type": "ItemList", "itemListElement": [
@@ -463,6 +470,7 @@ def build_svc(s, lang):
     </dl>
     <p class="glance">{e(glance)}</p>
     <p class="lede">{e(summ)}</p>
+    {('<p class="good-for"><span class="label">' + ('Good for' if en else 'Ideal para') + '</span> ' + e(GOOD_FOR[s['id']][0 if en else 1]) + ' · <a href="' + u('thera', lang) + '">' + ('Therapeutic massage guide' if en else 'Guía de masaje terapéutico') + ' →</a></p>') if s['id'] in GOOD_FOR else ''}
     <h2 class="label">{t['included']}</h2>
     <ul class="ticks">{inc}</ul>
     {adv}
@@ -483,6 +491,74 @@ def build_svc(s, lang):
                                          (c["en"] if en else c["es"], u("cat", lang, c)), (nm, u("svc", lang, s))])]
     write(u("svc", lang, s), head(lang, title, desc, u("svc", "en", s), u("svc", "es", s), lds, og_img=img(s)) + header(lang, u("svc", "es" if en else "en", s), "treatments") + body + footer(lang))
     if en: PAGES.append((u("svc", "en", s), u("svc", "es", s), "0.7"))
+
+
+# ---------------------------------------------------------------- THERAPEUTIC / RECOVERY
+# Concern -> recommended treatment ids (prices and lengths come live from SimplyBook)
+CONCERNS = [
+    ("lymphatic", "Lymphatic drainage massage", "Masaje de drenaje linfático", [5],
+     "Gentle, rhythmic strokes that follow the lymphatic pathways to ease fluid retention and swelling. Popular after flights, long days in the heat, workouts and for that light, de-puffed feeling.",
+     "Movimientos suaves y rítmicos que siguen el sistema linfático para aliviar la retención de líquidos y la inflamación. Ideal después de vuelos, días largos de calor, entrenamientos o para sentir el cuerpo ligero y desinflamado."),
+    ("sports", "Sports massage & muscle recovery", "Masaje deportivo y recuperación muscular", [31, 3],
+     "Built for active bodies: surfers, runners, cyclists, yogis and gym-goers. Firm, targeted work releases tight muscles and knots, improves mobility and helps you recover faster between sessions. Add the hot sauna and cold hydropool for contrast therapy.",
+     "Pensado para cuerpos activos: surf, running, ciclismo, yoga y gimnasio. Trabajo firme y dirigido que libera músculos tensos y nudos, mejora la movilidad y ayuda a recuperarte más rápido. Combínalo con la sauna caliente y la hidroalberca fría para terapia de contraste."),
+    ("back", "Massage for lower back pain", "Masaje para dolor de espalda baja", [3, 7, 31],
+     "Long hours of travel, sitting or lifting load the lower back. Deep tissue and heat-based massage focus on the lumbar muscles, hips and glutes to relieve tension and stiffness.",
+     "Horas de viaje, de estar sentado o cargar peso afectan la espalda baja. El masaje de tejido profundo y con calor se enfoca en la zona lumbar, cadera y glúteos para aliviar la tensión y la rigidez."),
+    ("neck", "Massage for neck & shoulder pain", "Masaje para dolor de cuello y hombros", [3, 7, 31],
+     "Screens, phones and stress settle in the neck and shoulders. Focused pressure, stretching and warm stones melt tension in the upper back, neck and shoulders and can ease tension headaches.",
+     "Pantallas, celular y estrés se acumulan en cuello y hombros. Presión enfocada, estiramientos y piedras calientes liberan la tensión de la espalda alta, el cuello y los hombros, y pueden aliviar dolores de cabeza por tensión."),
+]
+def build_thera(lang):
+    en = lang == "en"; t = T[lang]
+    byid = {x["id"]: x for x in SERVICES}
+    title = ("Sports & Therapeutic Massage in Tulum | Back, Neck, Lymphatic" if en
+             else "Masaje Deportivo y Terapéutico en Tulum | Espalda y Cuello")
+    desc = ("Sports massage, muscle recovery, lymphatic drainage and massage for lower back and neck pain in La Veleta, Tulum. Deep tissue, hot stone, sauna and cold pool."
+            if en else "Masaje deportivo, recuperación muscular, drenaje linfático y masaje para dolor de espalda baja y cuello en La Veleta, Tulum. Tejido profundo, piedras calientes, sauna y alberca fría.")
+    blocks = ""
+    for key, a, b, ids, ta, tb in CONCERNS:
+        recs = [byid[i] for i in ids if i in byid]
+        lis = "".join(f'<li><a href="{u("svc", lang, r)}">{e(name(r, lang))}</a> · {r["dur"]} {t["min"]} · {money(r["price"])}</li>' for r in recs)
+        blocks += f"""<section class="concern" id="{key}"><h2>{a if en else b} <span class="in">{'in Tulum' if en else 'en Tulum'}</span></h2>
+<p>{e(ta if en else tb)}</p><p class="label">{'Recommended' if en else 'Recomendado'}</p><ul class="ticks">{lis}</ul>
+<a class="btn btn-ink" href="{u('book', lang)}?service={recs[0]['id']}">{t['book']}</a></section>"""
+    picks = [byid[i] for i in (31, 3, 5) if i in byid]
+    qa = ([("Do you offer sports massage in Tulum?", "Yes. Our Muscle Recovery Massage (90 min) and Deep Tissue Massage are our sports massages: firm, targeted work for active bodies, in La Veleta, Tulum. Pair them with the hot sauna and cold hydropool."),
+           ("Which massage is best for lower back pain?", "Deep Tissue is the usual choice for lower back tension; Hot Stone adds heat for stiff muscles; the 90-minute Muscle Recovery gives the most time on back, hips and glutes. Tell your therapist where it hurts."),
+           ("Which massage helps neck and shoulder pain?", "Deep Tissue or Hot Stone, focused on the upper back, neck and shoulders. Many guests with desk or travel tension book 60 minutes; 90 minutes allows a full-body session with extra neck work."),
+           ("What does lymphatic drainage massage do?", "It uses gentle, rhythmic movements to stimulate lymph flow, which can reduce fluid retention and swelling and leave the body feeling lighter. Our Lymphatic Drainage Massage lasts 60 minutes."),
+           ("Is this medical treatment?", "No. Our massages support relaxation and muscle recovery but do not replace medical care. If you have an injury, recent surgery, a medical condition or are pregnant, please tell us when booking and check with your doctor.")]
+          if en else
+          [("¿Ofrecen masaje deportivo en Tulum?", "Sí. Nuestro Masaje de Recuperación Muscular (90 min) y el Masaje de Tejido Profundo son nuestros masajes deportivos: trabajo firme y dirigido para cuerpos activos, en La Veleta, Tulum. Combínalos con la sauna caliente y la hidroalberca fría."),
+           ("¿Qué masaje es mejor para el dolor de espalda baja?", "El tejido profundo es la opción más común para la tensión lumbar; las piedras calientes agregan calor para músculos rígidos; la Recuperación Muscular de 90 minutos da más tiempo a espalda, cadera y glúteos. Dile a tu terapeuta dónde te duele."),
+           ("¿Qué masaje ayuda con el dolor de cuello y hombros?", "Tejido profundo o piedras calientes, enfocados en espalda alta, cuello y hombros. Para tensión por trabajo o viajes, 60 minutos suele bastar; 90 minutos permite cuerpo completo con trabajo extra en cuello."),
+           ("¿Qué hace el masaje de drenaje linfático?", "Usa movimientos suaves y rítmicos que estimulan el flujo linfático, lo que puede reducir la retención de líquidos y la inflamación y dejar el cuerpo más ligero. Nuestro Drenaje Linfático dura 60 minutos."),
+           ("¿Es un tratamiento médico?", "No. Nuestros masajes apoyan la relajación y la recuperación muscular, pero no sustituyen la atención médica. Si tienes una lesión, cirugía reciente, alguna condición médica o estás embarazada, avísanos al reservar y consulta a tu médico.")])
+    body = f"""<section class="page-head"><nav class="crumbs"><a href="{u('home', lang)}">{'Home' if en else 'Inicio'}</a> / <a href="{u('treatments', lang)}">{t['treatments']}</a></nav>
+<p class="label">{'Therapeutic &amp; recovery' if en else 'Terapéutico y recuperación'}</p>
+<h1>{'Sports &amp; therapeutic <em>massage</em> in Tulum' if en else 'Masaje deportivo y <em>terapéutico</em> en Tulum'}</h1>
+<p class="lede">{'Lymphatic drainage, sports massage, muscle recovery and focused relief for lower back and neck pain, in a calm gallery-inspired spa in La Veleta, with a private hot sauna and cold hydropool for contrast therapy.' if en else 'Drenaje linfático, masaje deportivo, recuperación muscular y alivio enfocado para dolor de espalda baja y cuello, en un spa galería en La Veleta, con sauna caliente privada e hidroalberca fría para terapia de contraste.'}</p>
+<nav class="chips">{''.join(f'<a href="#{k}">{a if en else b}</a>' for k, a, b, *_ in CONCERNS)}</nav></section>
+<div class="section concerns">{blocks}</div>
+<div class="band"><section class="section"><header class="sec-head"><h2>{'Most booked for <em>recovery</em>' if en else 'Lo más reservado para <em>recuperación</em>'}</h2></header><div class="works cols3">{''.join(card(x, lang) for x in picks)}</div></section></div>
+<section class="section"><h2 class="label">FAQ</h2><div class="faq">{''.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in qa)}</div></section>
+{visit_block(lang)}"""
+    lds = [business_ld(lang), faq_ld(qa),
+           crumbs_ld([("Home" if en else "Inicio", u("home", lang)), (t["treatments"], u("treatments", lang)),
+                      ("Sports & therapeutic massage" if en else "Masaje deportivo y terapéutico", u("thera", lang))]),
+           {"@context": "https://schema.org", "@type": "ItemList", "name": title, "itemListElement": [
+               {"@type": "ListItem", "position": i + 1, "url": D + u("svc", lang, byid[x]), "name": name(byid[x], lang)} for i, x in enumerate((31, 3, 5, 7)) if x in byid]}]
+    write(u("thera", lang), head(lang, title, desc, u("thera", "en"), u("thera", "es"), lds) + header(lang, u("thera", "es" if en else "en"), "treatments") + body + footer(lang))
+    if en: PAGES.append((u("thera", "en"), u("thera", "es"), "0.8"))
+
+# "Good for" lines on treatment pages
+GOOD_FOR = {
+    3: ("Sports massage · lower back pain · neck & shoulder tension · knots", "Masaje deportivo · dolor de espalda baja · tensión de cuello y hombros · nudos"),
+    31: ("Sports massage · muscle recovery after surf, gym or running · back & neck pain", "Masaje deportivo · recuperación muscular tras surf, gimnasio o running · dolor de espalda y cuello"),
+    5: ("Fluid retention · swelling after flights or heat · post-workout lightness", "Retención de líquidos · inflamación tras vuelos o calor · ligereza post-entrenamiento"),
+    7: ("Stiff muscles · lower back & neck tension · deep relaxation", "Músculos rígidos · tensión de espalda baja y cuello · relajación profunda"),
+}
 
 # ---------------------------------------------------------------- SPACE
 def build_space(lang):
@@ -634,7 +710,7 @@ def build_llms():
              _fill("- Price range: $450–$5,800 MXN. Massages from {MINM} MXN (60 min). Couples packages from {COUPLE} MXN for two."),
              "- Neighborhood: La Veleta, a few minutes from downtown Tulum and the Hotel Zone road", "",
              "## Pages",
-             f"- [Spa menu & prices]({D}/treatments/)", f"- [Book online]({D}/book/)", f"- [The space]({D}/the-space/)",
+             f"- [Spa menu & prices]({D}/treatments/)", f"- [Sports & therapeutic massage: lymphatic drainage, muscle recovery, lower back & neck pain]({D}/therapeutic-massage/)", f"- [Book online]({D}/book/)", f"- [The space]({D}/the-space/)",
              f"- [FAQ]({D}/faq/)", f"- [Contact]({D}/contact/)", f"- [Español]({D}/es/)", ""]
     for c in CAT.values():
         lines.append(f"## {c['en']}")
@@ -647,7 +723,7 @@ def build_llms():
 
 if __name__ == "__main__":
     for lang in ("en", "es"):
-        build_home(lang); build_treatments(lang); build_space(lang); build_book(lang); build_faq(lang); build_contact(lang)
+        build_home(lang); build_treatments(lang); build_thera(lang); build_space(lang); build_book(lang); build_faq(lang); build_contact(lang)
         for c in CAT.values(): build_cat(c, lang)
         for s in SERVICES: build_svc(s, lang)
     build_404(); n = build_sitemap(); build_robots(); build_llms()
