@@ -55,10 +55,14 @@ export async function computeDay(date) {
     const time = start.slice(11, 16);
     const client = (bk.client || bk.client_name || "").toString().split(" ")[0];
     const a = amountFor(therapist, service, mins);
-    lines.push({ booking: bk.id, time, service, mins, therapist, client, amount: a.amount, note: a.note || "" });
+    // Rebeca works Mon–Thu 10–19 and Fri 10–16; outside that it should be a freelancer
+    const wd = new Date(date + "T12:00:00").getDay(); // 0 Sun … 6 Sat
+    const offShift = isRebeca(therapist) && (wd === 0 || wd === 6 || (wd === 5 && time >= "16:00") || time >= "19:00");
+    const note = [a.note, offShift ? "⚠️ Rebeca isn't on shift then: should this be a freelancer?" : ""].filter(Boolean).join(" · ");
+    lines.push({ booking: bk.id, time, service, mins, therapist, client, amount: a.amount, note });
     if (rule(service)?.couple) {
       const fl = amountFor("FL", service, mins);
-      lines.push({ booking: bk.id, time, service, mins, therapist: "FL", client, amount: fl.amount, note: "second therapist (couples)" });
+      lines.push({ booking: bk.id, time, service, mins, therapist: "FL", client, amount: fl.amount, note: "second therapist (couples, freelancer)" });
     }
   }
   return lines;
