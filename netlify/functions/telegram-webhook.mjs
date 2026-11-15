@@ -2,6 +2,7 @@
 import { send, tg, esc, webhookSecret, hasTelegram } from "../lib/telegram.mjs";
 import { store, getChat, fetchPlace, proposeReply, finalCopy, draftReply, keyboard } from "../lib/reputation.mjs";
 import { resetConversation } from "../lib/concierge.mjs";
+import { pstore, computeDay, dayText, dayKeyboard, tulumDate, owed, isRebeca, money, REBECA_WEEKLY_BASE } from "../lib/payroll.mjs";
 
 // Hand work to the background concierge (it may take up to ~30 seconds).
 async function runConcierge(req, payload) {
@@ -24,6 +25,15 @@ export default async (req) => {
       await tg("answerCallbackQuery", { callback_query_id: q.id });
       if (owner && chat !== String(owner)) return new Response("ok");
       const [action, key] = q.data.split(":");
+      if (["pyok", "pyed", "flpaid"].includes(action)) {
+        const ps = pstore();
+        if (action === "flpaid") { await ps.set("fl-paid-through", key); await send(chat, `✅ Freelancers marked as paid through ${key}.`); return new Response("ok"); }
+        const day = await ps.get("day-" + key, { type: "json" });
+        if (!day) { await send(chat, "That day isn't saved anymore. Send /payroll " + key); return new Response("ok"); }
+        if (action === "pyok") { day.status = "approved"; await ps.setJSON("day-" + key, day); await send(chat, `✅ Payroll ${key} approved and saved.`); }
+        else { await s.set("py-edit", key); await send(chat, `✏️ Editing ${key}. Send one change per message:\n<b>3 600</b> – set line 3 to $600\n<b>3 Rosi</b> – line 3 was done by Rosi\n<b>del 3</b> – remove line 3\n<b>add Rosi 500 Deep Tissue</b> – add a line\n<b>done</b> – finish`); }
+        return new Response("ok");
+      }
       if (action === "cxok" || action === "cxno") {
         await send(chat, action === "cxok" ? "✅ Got it, I'll tell the guest." : "❌ Got it, I'll offer the guest other times.");
         await runConcierge(req, { pending: key, approved: action === "cxok", channel: "telegram", chat });
@@ -64,6 +74,65 @@ export default async (req) => {
       return new Response("ok");
     }
     if (!owner || chat !== String(owner)) return new Response("ok");
+
+    // ---- Payroll ----
+    const editing = await s.get("py-edit");
+    if (editing && !text.startsWith("/")) {
+      const ps = pstore(); const day = await ps.get("day-" + editing, { type: "json" });
+      if (/^done$/i.test(text)) { await s.delete("py-edit"); await send(chat, dayText(editing, day.lines, day.tips), { reply_markup: dayKeyboard(editing) }); return new Response("ok"); }
+      let m;
+      if ((m = text.match(/^del(?:ete)?\s+(\d+)$/i))) day.lines.splice(Number(m[1]) - 1, 1);
+      else if ((m = text.match(/^add\s+(\S+)\s+(\d+)\s*(.*)$/i))) day.lines.push({ time: "", service: m[3] || "Manual", mins: 0, therapist: m[1], amount: Number(m[2]), note: "added by Leon" });
+      else if ((m = text.match(/^(\d+)\s+(\d+)$/))) { const l = day.lines[Number(m[1]) - 1]; if (l) { l.amount = Number(m[2]); l.note = "edited"; } }
+      else if ((m = text.match(/^(\d+)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ]+)$/))) { const l = day.lines[Number(m[1]) - 1]; if (l) { l.therapist = m[2]; l.note = "therapist changed — check amount"; } }
+      else { await send(chat, "I didn't get that. Examples: <b>3 600</b>, <b>3 Rosi</b>, <b>del 3</b>, <b>add Rosi 500 Deep Tissue</b>, <b>done</b>"); return new Response("ok"); }
+      await ps.setJSON("day-" + editing, day);
+      await send(chat, dayText(editing, day.lines, day.tips) + "\n\n<i>Keep editing, or send</i> <b>done</b>");
+      return new Response("ok");
+    }
+    if (text.startsWith("/payroll")) {
+      const date = (text.match(/\d{4}-\d{2}-\d{2}/) || [tulumDate()])[0];
+      const ps = pstore(); const prev = (await ps.get("day-" + date, { type: "json" })) || {};
+      try {
+        const lines = await computeDay(date);
+        const day = { date, lines, tips: prev.tips || [], status: "pending" };
+        await ps.setJSON("day-" + date, day);
+        await send(chat, dayText(date, lines, day.tips), { reply_markup: dayKeyboard(date) });
+      } catch (e) { await send(chat, "⚠️ Couldn't read SimplyBook bookings: " + String(e.message).slice(0, 200)); }
+      return new Response("ok");
+    }
+    if (text.startsWith("/tip")) {
+      const m = text.match(/^\/tip\s+(\S+)\s+(\d+)(?:\s+(\d{4}-\d{2}-\d{2}))?/i);
+      if (!m) { await send(chat, "Use: <b>/tip Rosi 300</b> (optionally add a date: /tip Rosi 300 2026-11-14)"); return new Response("ok"); }
+      const date = m[3] || tulumDate(); const ps = pstore();
+      const day = (await ps.get("day-" + date, { type: "json" })) || { date, lines: [], tips: [], status: "pending" };
+      day.tips = [...(day.tips || []), { name: m[1], amount: Number(m[2]) }];
+      await ps.setJSON("day-" + date, day);
+      await send(chat, `💵 Tip saved: ${m[1]} ${money(Number(m[2]))} on ${date}.`);
+      return new Response("ok");
+    }
+    if (text.startsWith("/expense")) {
+      const m = text.match(/^\/expense\s+(\d+(?:\.\d+)?)\s+(.+)$/i);
+      if (!m) { await send(chat, "Use: <b>/expense 850 towels laundry</b>"); return new Response("ok"); }
+      const ps = pstore(); const month = tulumDate().slice(0, 7);
+      const list = (await ps.get("expenses-" + month, { type: "json" })) || [];
+      list.push({ date: tulumDate(), amount: Number(m[1]), what: m[2] });
+      await ps.setJSON("expenses-" + month, list);
+      const total = list.reduce((a, b) => a + b.amount, 0);
+      await send(chat, `🧾 Expense saved: ${money(Number(m[1]))} – ${m[2]}.\nThis month so far: <b>${money(total)}</b>`);
+      return new Response("ok");
+    }
+    if (text === "/owed") {
+      const ps = pstore(); const last = (await ps.get("fl-paid-through")) || tulumDate(-3);
+      const from = new Date(new Date(last + "T12:00:00").getTime() + 86400000).toISOString().slice(0, 10);
+      const fl = await owed(from, tulumDate(), (n) => !isRebeca(n));
+      const today = new Date(tulumDate() + "T12:00:00"); const back = (today.getDay() + 6) % 7;
+      const monday = new Date(today.getTime() - back * 86400000).toISOString().slice(0, 10);
+      const rb = Object.values(await owed(monday, tulumDate(), isRebeca)).reduce((a, b) => a + b, 0);
+      const flTxt = Object.entries(fl).map(([k, v]) => `• ${k}: ${money(v)}`).join("\n") || "• nothing yet";
+      await send(chat, `💳 <b>Owed now</b> (approved days only)\n\nFreelancers since ${from}:\n${flTxt}\n\nRebeca this week (from ${monday}): ${money(REBECA_WEEKLY_BASE)} base + ${money(rb)} = <b>${money(REBECA_WEEKLY_BASE + rb)}</b>`);
+      return new Response("ok");
+    }
 
     // ---- Concierge test mode: you chat as a guest ----
     if (text === "/guest" || text === "/guest on") {

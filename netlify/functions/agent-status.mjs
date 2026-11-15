@@ -58,6 +58,7 @@ export default async () => {
     `SimplyBook secret key ..... ${has("SIMPLYBOOK_SECRET_KEY")}`,
     `SimplyBook booking API .... ${sb}`,
     `WhatsApp via Telnyx ....... ${wa}`,
+    `Payroll (SimplyBook login)  ${process.env.SIMPLYBOOK_ADMIN_LOGIN && process.env.SIMPLYBOOK_ADMIN_PASSWORD ? "✅ set" : "❌ SIMPLYBOOK_ADMIN_LOGIN / SIMPLYBOOK_ADMIN_PASSWORD missing"}`,
     "",
     `Last contact from Gmail ... ${last}`,
     "",

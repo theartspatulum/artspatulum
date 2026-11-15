@@ -31,3 +31,21 @@ export const therapists = () => call("getUnitList");
 // Free start times for a service on given dates: { "2026-11-14": ["10:00:00", ...] }
 export const freeTimes = (from, to, serviceId, unitId = null, count = 1) =>
   call("getStartTimeMatrix", [from, to, serviceId, unitId, count]);
+
+// ---------- Admin API (needs a SimplyBook user login; sees all bookings and hidden therapists) ----------
+let adminCached = null;
+export async function adminToken() {
+  if (adminCached && adminCached.until > Date.now()) return adminCached.t;
+  const t = await rpc(BASE + "/login", "getUserToken", [COMPANY, process.env.SIMPLYBOOK_ADMIN_LOGIN, process.env.SIMPLYBOOK_ADMIN_PASSWORD]);
+  adminCached = { t, until: Date.now() + 30 * 60 * 1000 };
+  return t;
+}
+export async function admin(method, params = []) {
+  const t = await adminToken();
+  return rpc(BASE + "/admin/", method, params, { "X-Company-Login": COMPANY, "X-User-Token": t });
+}
+// Non-cancelled bookings for one date (YYYY-MM-DD)
+export async function bookingsOn(date) {
+  const r = await admin("getBookings", [{ date_from: date, date_to: date, booking_type: "non_cancelled", order: "start_date" }]);
+  return Array.isArray(r) ? r : Object.values(r || {});
+}
