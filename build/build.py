@@ -49,7 +49,7 @@ T = {  # UI strings
     "en": dict(treatments="Treatments", couples="Couples", specials="Specials", space="The Space", faq="FAQ", contact="Contact",
                book="Book now", book_this="Book this treatment", view="View", from_="from", min="min",
                included="What's included", related="You may also like", all="All treatments",
-               whatsapp="WhatsApp us", open="Open daily 10:00–19:00", hours="Hours", address="Address",
+               whatsapp="WhatsApp us", open="Open daily 10:00–20:00", hours="Hours", address="Address",
                switch="ES", switch_label="Español", menu="Menu", explore="Explore the menu",
                advance="Reserve at least {h} hr before start time.", price_label="Price", dur_label="Duration",
                cat_label="Collection", directions="Get directions", skip="Skip to content",
@@ -57,7 +57,7 @@ T = {  # UI strings
     "es": dict(treatments="Tratamientos", couples="Parejas", specials="Especiales", space="El Espacio", faq="Preguntas", contact="Contacto",
                book="Reservar", book_this="Reservar este tratamiento", view="Ver", from_="desde", min="min",
                included="Qué incluye", related="También te puede gustar", all="Todos los tratamientos",
-               whatsapp="Escríbenos por WhatsApp", open="Abierto diario 10:00–19:00", hours="Horario", address="Dirección",
+               whatsapp="Escríbenos por WhatsApp", open="Abierto diario 10:00–20:00", hours="Horario", address="Dirección",
                switch="EN", switch_label="English", menu="Menú", explore="Ver el menú",
                advance="Reservar al menos {h} h antes de la hora de inicio.", price_label="Precio", dur_label="Duración",
                cat_label="Colección", directions="Cómo llegar", skip="Ir al contenido",
@@ -202,7 +202,7 @@ def footer(lang):
     </div>
     <div>
       <h2 class="label">{t['hours']}</h2>
-      <p>{'Monday – Sunday' if lang=='en' else 'Lunes a domingo'}<br>10:00 – 19:00</p>
+      <p>{'Monday – Sunday' if lang=='en' else 'Lunes a domingo'}<br>10:00 – 20:00</p>
       <p><a href="{wa(lang)}" rel="noopener">WhatsApp {SITE['phone_display']}</a><br>
       <a href="mailto:{SITE['email']}">{SITE['email']}</a></p>
     </div>
@@ -261,8 +261,8 @@ def build_home(lang):
     t = T[lang]; en = lang == "en"
     title = ("The Art Spa Tulum | Massage, Couples Spa & Sauna in La Veleta"
              if en else "The Art Spa Tulum | Masajes, Spa en Pareja y Sauna en Tulum")
-    desc = ("Gallery-inspired day spa in La Veleta, Tulum. Massages from {MINM} MXN, couples rituals, facials, private sauna and hydropool. Open daily 10:00–19:00. Book online."
-            if en else "Spa inspirado en una galería en La Veleta, Tulum. Masajes desde {MINM} MXN, rituales en pareja, faciales, sauna privada e hidroalberca. Abierto diario 10:00–19:00. Reserva en línea.")
+    desc = ("Gallery-inspired day spa in La Veleta, Tulum. Massages from {MINM} MXN, couples rituals, facials, private sauna and hydropool. Open daily 10:00–20:00. Book online."
+            if en else "Spa inspirado en una galería en La Veleta, Tulum. Masajes desde {MINM} MXN, rituales en pareja, faciales, sauna privada e hidroalberca. Abierto diario 10:00–20:00. Reserva en línea.")
     featured = [next(x for x in SERVICES if x["id"] == i) for i in (26, 28, 27, 5, 31, 12)]
     order = ["specials", "massages", "couples", "specialty", "facials", "body", "sauna"]
     tiles = "".join(f"""<a class="coll{' wide' if k in ('specials', 'massages', 'couples') else ''}" href="{u('cat', lang, CAT[k])}"><img src="{CAT_IMG[k][0]}" style="object-position:{CAT_IMG[k][1]}" alt="" loading="lazy" decoding="async"><span class="coll-txt"><span class="coll-t">{CAT[k]['en'] if en else CAT[k]['es']}</span><span class="coll-c">{t['from_']} {money(min(s['price'] for s in svc_in(k)))}</span></span></a>"""
@@ -391,12 +391,12 @@ def cat_faq_pairs(c, items, lang):
         return [
             (f"How much do {nm} cost at The Art Spa Tulum?", f"Our {nm} range from {money(lo)} to {money(hi)}. Options include {names}. All prices are in Mexican pesos."),
             (f"How long do the {nm} last?", f"Sessions last between {dmin} and {dmax} minutes, depending on the treatment."),
-            (f"Where can I book {nm} in Tulum?", f"At The Art Spa Tulum in La Veleta ({SITE['street']}, {SITE['postal']} Tulum). Book online with instant confirmation at theartspatulum.mx or message us on WhatsApp at {SITE['phone_display']}. Open daily 10:00–19:00."),
+            (f"Where can I book {nm} in Tulum?", f"At The Art Spa Tulum in La Veleta ({SITE['street']}, {SITE['postal']} Tulum). Book online with instant confirmation at theartspatulum.mx or message us on WhatsApp at {SITE['phone_display']}. Open daily 10:00–20:00."),
         ]
     return [
         (f"¿Cuánto cuestan los {nm} en The Art Spa Tulum?", f"Nuestros {nm} van de {money(lo)} a {money(hi)}. Opciones: {names}. Todos los precios en pesos mexicanos."),
         (f"¿Cuánto duran los {nm}?", f"Las sesiones duran entre {dmin} y {dmax} minutos, según el tratamiento."),
-        (f"¿Dónde reservo {nm} en Tulum?", f"En The Art Spa Tulum, La Veleta ({SITE['street']}, {SITE['postal']} Tulum). Reserva en línea con confirmación inmediata en theartspatulum.mx o por WhatsApp al {SITE['phone_display']}. Abierto diario 10:00–19:00."),
+        (f"¿Dónde reservo {nm} en Tulum?", f"En The Art Spa Tulum, La Veleta ({SITE['street']}, {SITE['postal']} Tulum). Reserva en línea con confirmación inmediata en theartspatulum.mx o por WhatsApp al {SITE['phone_display']}. Abierto diario 10:00–20:00."),
     ]
 
 def cat_faq_block(c, items, lang):
@@ -440,14 +440,14 @@ def build_svc(s, lang):
          (f"The {nm} costs {money(s['price'])}{(' ' + note) if note else ''} and lasts {s['dur']} minutes." if en else
           f"{nm} cuesta {money(s['price'])}{(' ' + note) if note else ''} y dura {s['dur']} minutos.")),
         (("Where is it offered?" if en else "¿Dónde se ofrece?"),
-         (f"At The Art Spa Tulum, {SITE['street']}, {SITE['postal']} Tulum, Quintana Roo. Open daily 10:00–19:00." if en else
-          f"En The Art Spa Tulum, {SITE['street']}, {SITE['postal']} Tulum, Quintana Roo. Abierto diario 10:00–19:00.")),
+         (f"At The Art Spa Tulum, {SITE['street']}, {SITE['postal']} Tulum, Quintana Roo. Open daily 10:00–20:00." if en else
+          f"En The Art Spa Tulum, {SITE['street']}, {SITE['postal']} Tulum, Quintana Roo. Abierto diario 10:00–20:00.")),
         (("How do I book?" if en else "¿Cómo reservo?"),
          ("Book online at theartspatulum.mx/book with instant confirmation, or message us on WhatsApp at " + SITE["phone_display"] + "." if en else
           "Reserva en línea en theartspatulum.mx/es/reservar con confirmación inmediata, o escríbenos por WhatsApp al " + SITE["phone_display"] + ".")),
     ]
-    glance = (f"{'' if nm.startswith('The ') else 'The '}{nm} at The Art Spa Tulum is a {s['dur']}-minute treatment priced at {money(s['price'])}{(' ' + note) if note else ''}, offered daily 10:00–19:00 in La Veleta, Tulum."
-              if en else f"{nm} en The Art Spa Tulum es un tratamiento de {s['dur']} minutos por {money(s['price'])}{(' ' + note) if note else ''}, disponible diario de 10:00 a 19:00 en La Veleta, Tulum.")
+    glance = (f"{'' if nm.startswith('The ') else 'The '}{nm} at The Art Spa Tulum is a {s['dur']}-minute treatment priced at {money(s['price'])}{(' ' + note) if note else ''}, offered daily 10:00–20:00 in La Veleta, Tulum."
+              if en else f"{nm} en The Art Spa Tulum es un tratamiento de {s['dur']} minutos por {money(s['price'])}{(' ' + note) if note else ''}, disponible diario de 10:00 a 20:00 en La Veleta, Tulum.")
     adv = f'<p class="notice">{t["advance"].format(h=s["advance"])}</p>' if s.get("advance") else ""
     direct = f"{SITE['booking_base']}/v2/#book/service/{s['id']}/count/1/"
     body = f"""<article class="svc">
@@ -514,8 +514,8 @@ def build_space(lang):
 def build_book(lang):
     en = lang == "en"; t = T[lang]
     title = "Book a Massage or Facial in Tulum | The Art Spa Tulum" if en else "Reserva Masaje o Facial en Tulum | The Art Spa Tulum"
-    desc = ("Book online with instant confirmation: massages, couples rituals, facials, sauna and hydropool at The Art Spa Tulum, La Veleta. Open daily 10:00–19:00."
-            if en else "Reserva en línea con confirmación inmediata: masajes, rituales en pareja, faciales, sauna e hidroalberca en The Art Spa Tulum, La Veleta. Abierto diario 10:00–19:00.")
+    desc = ("Book online with instant confirmation: massages, couples rituals, facials, sauna and hydropool at The Art Spa Tulum, La Veleta. Open daily 10:00–20:00."
+            if en else "Reserva en línea con confirmación inmediata: masajes, rituales en pareja, faciales, sauna e hidroalberca en The Art Spa Tulum, La Veleta. Abierto diario 10:00–20:00.")
     body = f"""<section class="page-head narrow"><p class="label">{'Reservations' if en else 'Reservaciones'}</p><h1>{'Book your treatment' if en else 'Reserva tu tratamiento'}</h1>
 <p class="lede">{'Choose a treatment, date and time. Confirmation is instant. Questions? Message us on' if en else 'Elige tratamiento, fecha y hora. La confirmación es inmediata. ¿Dudas? Escríbenos por'} <a href="{wa(lang)}" rel="noopener">WhatsApp</a>.</p></section>
 <section class="section booking">
@@ -543,14 +543,14 @@ def build_faq(lang):
 def build_contact(lang):
     en = lang == "en"; t = T[lang]
     title = "Contact & Directions | The Art Spa Tulum, La Veleta" if en else "Contacto y Ubicación | The Art Spa Tulum, La Veleta"
-    desc = (f"Contact The Art Spa Tulum: WhatsApp {SITE['phone_display']}, {SITE['email']}. {SITE['street']}, {SITE['postal']} Tulum. Open daily 10:00–19:00."
-            if en else f"Contacta a The Art Spa Tulum: WhatsApp {SITE['phone_display']}, {SITE['email']}. {SITE['street']}, {SITE['postal']} Tulum. Abierto diario 10:00–19:00.")
+    desc = (f"Contact The Art Spa Tulum: WhatsApp {SITE['phone_display']}, {SITE['email']}. {SITE['street']}, {SITE['postal']} Tulum. Open daily 10:00–20:00."
+            if en else f"Contacta a The Art Spa Tulum: WhatsApp {SITE['phone_display']}, {SITE['email']}. {SITE['street']}, {SITE['postal']} Tulum. Abierto diario 10:00–20:00.")
     maps = f"https://www.google.com/maps/search/?api=1&query=The+Art+Spa+Tulum&query_place_id={GPLACE}"
     rows = [
         ("WhatsApp", f'<a href="{wa(lang)}" rel="noopener">{SITE["phone_display"]}</a>'),
         ("Email", f'<a href="mailto:{SITE["email"]}">{SITE["email"]}</a>'),
         (t["address"], f'{SITE["street"]}<br>{SITE["postal"]} {SITE["city"]}, {SITE["region_short"]}, México<br><a class="link" href="{maps}" rel="noopener">{t["directions"]}</a>'),
-        (t["hours"], ("Monday – Sunday" if en else "Lunes a domingo") + "<br>10:00 – 19:00"),
+        (t["hours"], ("Monday – Sunday" if en else "Lunes a domingo") + "<br>10:00 – 20:00"),
         ("Social", f'<a href="{SITE["instagram"]}" rel="noopener">Instagram @theartspatulum</a><br><a href="{SITE["facebook"]}" rel="noopener">Facebook</a>'),
     ]
     dl = "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows)
@@ -625,7 +625,7 @@ def build_llms():
              "## Key facts",
              f"- Address: {SITE['street']}, {SITE['postal']} {SITE['city']}, {SITE['region']}, Mexico",
              f"- Coordinates: {SITE['lat']}, {SITE['lng']}",
-             "- Hours: Open every day, 10:00–19:00 (America/Cancun)",
+             "- Hours: Open every day, 10:00–20:00 (America/Cancun)",
              f"- WhatsApp / phone: {SITE['phone_display']}",
              f"- Email: {SITE['email']}",
              f"- Online booking: {D}/book/ (instant confirmation via SimplyBook.me)",
