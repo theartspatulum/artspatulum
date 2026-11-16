@@ -49,6 +49,7 @@ def apply(services):
         pic = (sb.get("picture_path") or "").split("/")[-1]
         if pic and pic != s["img"]:
             s["img"] = pic
+        s["sb_cat"] = str((sb.get("categories") or [""])[0])
         cats = [SB_CAT[c] for c in (sb.get("categories") or []) if c in SB_CAT]
         if cats:
             if s["cat"] not in cats:
@@ -67,7 +68,7 @@ def apply(services):
         keep.append(dict(id=int(sid), cat=cats[0], also=cats[1:], name=name, name_es=name,
                          slug=_slug(name), slug_es=_slug(name), price=int(round(float(sb.get("price") or 0))),
                          dur=int(sb.get("duration") or 60), img=(sb.get("picture_path") or "").split("/")[-1],
-                         sum=first, sum_es=first, inc=lines, inc_es=lines))
+                         sum=first, sum_es=first, inc=lines, inc_es=lines, sb_cat=str((sb.get("categories") or [""])[0])))
         report.append(f"new treatment added: {name}")
     services[:] = keep
     return "SimplyBook sync OK: " + ("; ".join(report) if report else "no changes")

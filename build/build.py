@@ -587,6 +587,8 @@ def build_space(lang):
     write(u("space", lang), head(lang, title, desc, "/the-space/", "/es/el-espacio/", lds) + header(lang, u("space", "es" if en else "en"), "space") + body + footer(lang))
 
 # ---------------------------------------------------------------- BOOK
+# SimplyBook category ids (used to deep-link a Book button straight to its treatment)
+SB_CAT_ID = {"specials": "6", "massages": "1", "specialty": "7", "couples": "2", "body": "3", "facials": "5", "sauna": "4"}
 def build_book(lang):
     en = lang == "en"; t = T[lang]
     title = "Book a Massage or Facial in Tulum | The Art Spa Tulum" if en else "Reserva Masaje o Facial en Tulum | The Art Spa Tulum"
@@ -595,7 +597,7 @@ def build_book(lang):
     body = f"""<section class="page-head narrow"><p class="label">{'Reservations' if en else 'Reservaciones'}</p><h1>{'Book your treatment' if en else 'Reserva tu tratamiento'}</h1>
 <p class="lede">{'Choose a treatment, date and time. Confirmation is instant. Questions? Message us on' if en else 'Elige tratamiento, fecha y hora. La confirmación es inmediata. ¿Dudas? Escríbenos por'} <a href="{wa(lang)}" rel="noopener">WhatsApp</a>.</p></section>
 <section class="section booking">
-  <div id="sbw_booking" class="booking-frame" data-sb="{SITE['booking_base']}"><p class="muted center">{'Loading booking calendar…' if en else 'Cargando calendario…'}</p></div>
+  <div id="sbw_booking" class="booking-frame" data-sb="{SITE['booking_base']}" data-cats='{json.dumps({str(x["id"]): x.get("sb_cat") or SB_CAT_ID.get(x["cat"], "") for x in SERVICES})}'><p class="muted center">{'Loading booking calendar…' if en else 'Cargando calendario…'}</p></div>
   <noscript><p class="center"><a class="btn btn-ink" href="{SITE['booking_base']}/v2/">{'Open the booking page' if en else 'Abrir página de reservas'}</a></p></noscript>
   <p class="small muted center">{'Trouble loading?' if en else '¿No carga?'} <a href="{SITE['booking_base']}/v2/" rel="noopener">{'Open booking in a new tab' if en else 'Abrir reservas en otra pestaña'} ↗</a></p>
 </section>

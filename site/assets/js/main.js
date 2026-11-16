@@ -17,6 +17,21 @@
   var service = params.get('service');
   var predefined = {};
   if (service && /^\d+$/.test(service)) predefined.service = service;
+  var cats = {};
+  try { cats = JSON.parse(box.getAttribute('data-cats') || '{}'); } catch (e) {}
+  // Deep link that opens the chosen treatment directly (SimplyBook needs its category too)
+  var deep = predefined.service ? '#book/' + (cats[predefined.service] ? 'category/' + cats[predefined.service] + '/' : '') + 'service/' + predefined.service + '/count/1/' : '';
+  function jump() {
+    if (!deep) return;
+    var tries = 0;
+    var t = setInterval(function () {
+      var f = box.querySelector('iframe');
+      if (f && f.src) {
+        clearInterval(t);
+        if (f.src.indexOf('#book/') === -1) f.src = f.src.split('#')[0] + deep;
+      } else if (++tries > 100) clearInterval(t);
+    }, 100);
+  }
 
   function init() {
     if (typeof SimplybookWidget === 'undefined') return false;
@@ -38,6 +53,7 @@
       app_config: { clear_session: 0, allow_switch_to_ada: 0, predefined: predefined },
       container_id: 'sbw_booking'
     });
+    jump();
     return true;
   }
   if (!init()) {
@@ -47,7 +63,7 @@
         clearInterval(t);
         if (tries > 50) {
           // Fallback: plain iframe to the booking page (deep-linked if a service was chosen)
-          var src = box.getAttribute('data-sb') + '/v2/' + (predefined.service ? '#book/service/' + predefined.service + '/count/1/' : '');
+          var src = box.getAttribute('data-sb') + '/v2/' + deep;
           box.innerHTML = '<iframe title="Booking" src="' + src + '" style="width:100%;min-height:760px;border:0"></iframe>';
         }
       }
