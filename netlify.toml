@@ -7,6 +7,9 @@
 
 [build.environment]
   PYTHON_VERSION = "3.12"
+  # The SimplyBook login is the spa's public email (shown on the site), so it is not a secret.
+  # The password stays protected by the scan.
+  SECRETS_SCAN_OMIT_KEYS = "SIMPLYBOOK_ADMIN_LOGIN"
 
 # Force the www domain + HTTPS (set www.theartspatulum.mx as primary domain in Netlify)
 [[redirects]]
