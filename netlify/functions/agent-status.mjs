@@ -1,6 +1,6 @@
 // Shows which agent settings are present (yes/no only — never the values).
 import { getStore } from "@netlify/blobs";
-import { services, therapists, freeTimes } from "../lib/simplybook.mjs";
+import { services, therapists, freeTimes, bookingsOn } from "../lib/simplybook.mjs";
 import { businessAccounts, whatsappNumbers, tx } from "../lib/telnyx.mjs";
 
 export default async () => {
@@ -46,6 +46,15 @@ export default async () => {
       wa = `✅ key works${su} — ${b.length} WhatsApp business account(s): ${b.map((x) => x.name || x.id).join(", ") || "none"} · numbers: ${nums || "none yet"}`;
     } catch (e) { wa = "❌ key set but Telnyx said: " + String(e.message).slice(0, 160); }
   }
+  let py = "❌ SIMPLYBOOK_ADMIN_LOGIN / SIMPLYBOOK_ADMIN_PASSWORD missing";
+  if (process.env.SIMPLYBOOK_ADMIN_LOGIN && process.env.SIMPLYBOOK_ADMIN_PASSWORD) {
+    try {
+      const d = new Date().toLocaleDateString("en-CA", { timeZone: "America/Cancun" });
+      const b = await bookingsOn(d);
+      const k = b[0] ? Object.keys(b[0]).join(",") : "";
+      py = `✅ login works — ${b.length} booking(s) today${b[0] ? ` · e.g. ${b[0].unit || b[0].unit_name || "?"} / ${b[0].event || b[0].event_name || "?"} · fields: ${k.slice(0, 200)}` : ""}`;
+    } catch (e) { py = "❌ " + String(e.message).slice(0, 200); }
+  }
   const lines = [
     "The Art Spa — agent status",
     "",
@@ -58,7 +67,7 @@ export default async () => {
     `SimplyBook secret key ..... ${has("SIMPLYBOOK_SECRET_KEY")}`,
     `SimplyBook booking API .... ${sb}`,
     `WhatsApp via Telnyx ....... ${wa}`,
-    `Payroll (SimplyBook login)  ${process.env.SIMPLYBOOK_ADMIN_LOGIN && process.env.SIMPLYBOOK_ADMIN_PASSWORD ? "✅ set" : "❌ SIMPLYBOOK_ADMIN_LOGIN / SIMPLYBOOK_ADMIN_PASSWORD missing"}`,
+    `Payroll (SimplyBook login)  ${py}`,
     "",
     `Last contact from Gmail ... ${last}`,
     "",
