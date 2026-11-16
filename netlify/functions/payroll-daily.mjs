@@ -7,6 +7,7 @@ import { pstore, computeDay, dayText, dayKeyboard, tulumDate, owed, isRebeca, mo
 export default async () => {
   const chat = await getChat(); if (!chat) return new Response("no chat");
   const s = pstore();
+  if ((await s.get("paused")) !== "no") return new Response("paused"); // paused until Leon sends /payroll resume
   const hour = Number(new Date().toLocaleString("en-US", { timeZone: "America/Cancun", hour: "numeric", hour12: false }));
   try {
     if (hour >= 18) {

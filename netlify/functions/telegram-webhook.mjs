@@ -2,6 +2,12 @@
 import { send, tg, esc, webhookSecret, hasTelegram } from "../lib/telegram.mjs";
 import { store, getChat, fetchPlace, proposeReply, finalCopy, draftReply, keyboard } from "../lib/reputation.mjs";
 import { resetConversation } from "../lib/concierge.mjs";
+import { reportText, getFixed, setFixed, deleteExpense, updateExpense, savedText, savedKeyboard, categoryKeyboard, CATEGORIES, money as emoney, tulumDate as etoday } from "../lib/expenses.mjs";
+
+async function runExpense(req, payload) {
+  const base = process.env.URL || new URL(req.url).origin;
+  await fetch(base + "/.netlify/functions/expense-background", { method: "POST", body: JSON.stringify({ ...payload, key: webhookSecret() }) });
+}
 import { pstore, computeDay, dayText, dayKeyboard, tulumDate, owed, isRebeca, money, REBECA_WEEKLY_BASE } from "../lib/payroll.mjs";
 
 // Hand work to the background concierge (it may take up to ~30 seconds).
@@ -25,6 +31,13 @@ export default async (req) => {
       await tg("answerCallbackQuery", { callback_query_id: q.id });
       if (owner && chat !== String(owner)) return new Response("ok");
       const [action, key] = q.data.split(":");
+      if (["exk", "exd", "exc"].includes(action)) {
+        const [, month, id, ci] = q.data.split(":");
+        if (action === "exk") await send(chat, `Pick a category for #${id}:`, { reply_markup: categoryKeyboard(month, id) });
+        else if (action === "exd") { await deleteExpense(month, id); await send(chat, `🗑️ Expense #${id} deleted.`); }
+        else { const it = await updateExpense(month, id, { category: CATEGORIES[Number(ci)] }); if (it) await send(chat, savedText(month, it), { reply_markup: savedKeyboard(month, id) }); }
+        return new Response("ok");
+      }
       if (["pyok", "pyed", "flpaid"].includes(action)) {
         const ps = pstore();
         if (action === "flpaid") { await ps.set("fl-paid-through", key); await send(chat, `✅ Freelancers marked as paid through ${key}.`); return new Response("ok"); }
@@ -58,6 +71,13 @@ export default async (req) => {
     }
 
     const msg = update.message;
+    if (msg && msg.photo && (await s.get("chat")) === String(msg.chat.id)) {
+      // A photo = a receipt to record as an expense (caption optional)
+      const best = msg.photo[msg.photo.length - 1];
+      await send(String(msg.chat.id), "📸 Reading the receipt…");
+      await runExpense(req, { chat: String(msg.chat.id), fileId: best.file_id, text: msg.caption || "" });
+      return new Response("ok");
+    }
     if (!msg || !msg.text) return new Response("ok");
     const chat = String(msg.chat.id);
     const text = msg.text.trim();
@@ -90,6 +110,11 @@ export default async (req) => {
       await send(chat, dayText(editing, day.lines, day.tips) + "\n\n<i>Keep editing, or send</i> <b>done</b>");
       return new Response("ok");
     }
+    if (text === "/payroll pause" || text === "/payroll resume") {
+      await pstore().set("paused", text.endsWith("resume") ? "no" : "yes");
+      await send(chat, text.endsWith("resume") ? "▶️ Commission reports are back on (every evening 8:30 PM)." : "⏸️ Commission reports paused. Send /payroll resume when you're ready.");
+      return new Response("ok");
+    }
     if (text.startsWith("/payroll")) {
       const date = (text.match(/\d{4}-\d{2}-\d{2}/) || [tulumDate()])[0];
       const ps = pstore(); const prev = (await ps.get("day-" + date, { type: "json" })) || {};
@@ -111,15 +136,28 @@ export default async (req) => {
       await send(chat, `💵 Tip saved: ${m[1]} ${money(Number(m[2]))} on ${date}.`);
       return new Response("ok");
     }
+    if (text.startsWith("/expenses")) {
+      const month = (text.match(/\d{4}-\d{2}/) || [etoday().slice(0, 7)])[0];
+      const base = process.env.URL || new URL(req.url).origin;
+      await send(chat, (await reportText(month)) + `\n\n🔒 <a href="${base}/.netlify/functions/expenses-page?key=${encodeURIComponent(webhookSecret())}&month=${month}">Open full report / download for Excel</a>`);
+      return new Response("ok");
+    }
     if (text.startsWith("/expense")) {
-      const m = text.match(/^\/expense\s+(\d+(?:\.\d+)?)\s+(.+)$/i);
-      if (!m) { await send(chat, "Use: <b>/expense 850 towels laundry</b>"); return new Response("ok"); }
-      const ps = pstore(); const month = tulumDate().slice(0, 7);
-      const list = (await ps.get("expenses-" + month, { type: "json" })) || [];
-      list.push({ date: tulumDate(), amount: Number(m[1]), what: m[2] });
-      await ps.setJSON("expenses-" + month, list);
-      const total = list.reduce((a, b) => a + b.amount, 0);
-      await send(chat, `🧾 Expense saved: ${money(Number(m[1]))} – ${m[2]}.\nThis month so far: <b>${money(total)}</b>`);
+      const rest = text.replace(/^\/expense\s*/i, "");
+      if (!rest) { await send(chat, "Tell me what you spent, in your own words:\n<b>/expense 1200 massage oils from Aceites Tulum</b>\n<b>/expense amazon towels 860</b>\nOr just send a <b>photo of the receipt</b>."); return new Response("ok"); }
+      await send(chat, "🧾 Got it, saving…");
+      await runExpense(req, { chat, text: rest });
+      return new Response("ok");
+    }
+    if (text.startsWith("/fixed")) {
+      const rest = text.replace(/^\/fixed\s*/i, "");
+      let m;
+      if ((m = rest.match(/^(?:del|delete|remove)\s+(.+)$/i))) await setFixed(m[1].trim(), null);
+      else if ((m = rest.match(/^(.+?)\s+(\d+(?:\.\d+)?)$/))) await setFixed(m[1].trim(), m[2]);
+      const f = await getFixed();
+      const list = Object.entries(f).map(([k, v]) => `• ${k}: <b>${emoney(v.amount)}</b> (${v.category})`).join("\n") || "None yet.";
+      const total = Object.values(f).reduce((a, b) => a + b.amount, 0);
+      await send(chat, `📌 <b>Fixed monthly costs</b> (added to every month automatically)\n${list}\n\nTotal: <b>${emoney(total)}</b>\n\nAdd/change: <b>/fixed Rent 25000</b> · Remove: <b>/fixed del Rent</b>`);
       return new Response("ok");
     }
     if (text === "/owed") {
