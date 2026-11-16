@@ -56,6 +56,11 @@
     jump();
     return true;
   }
+  // A specific treatment was chosen: open SimplyBook directly on it (the widget can't deep-link)
+  if (deep) {
+    box.innerHTML = '<iframe title="Booking" src="' + box.getAttribute('data-sb') + '/v2/?widget-type=iframe' + deep + '" style="width:100%;height:1100px;border:0;display:block"></iframe>';
+    return;
+  }
   if (!init()) {
     var tries = 0;
     var t = setInterval(function () {
