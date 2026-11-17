@@ -53,7 +53,10 @@ export default async () => {
       const b = await bookingsOn(d);
       const k = b[0] ? Object.keys(b[0]).join(",") : "";
       py = `✅ login works — ${b.length} booking(s) today${b[0] ? ` · e.g. ${b[0].unit || b[0].unit_name || "?"} / ${b[0].event || b[0].event_name || "?"} · fields: ${k.slice(0, 200)}` : ""}`;
-    } catch (e) { py = "❌ " + String(e.message).slice(0, 200); }
+    } catch (e) {
+      const pw = process.env.SIMPLYBOOK_ADMIN_PASSWORD.trim();
+      py = "❌ " + String(e.message).slice(0, 160) + ` · password box ${pw.startsWith("api_user_key_") ? "holds an API User Key ✅" : "does NOT start with api_user_key_ (looks like a normal password)"}`;
+    }
   }
   const lines = [
     "The Art Spa — agent status",
