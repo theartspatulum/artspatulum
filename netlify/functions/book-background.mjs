@@ -18,29 +18,14 @@ async function understand(text, list) {
     body: JSON.stringify({
       model: "claude-sonnet-5-5",
       max_tokens: 500,
-      system: `The spa owner wants to create a booking. Now in Tulum: ${tulumNow()} (today is ${today()}). Read the message (English or Spanish, loose wording) and fill the tool. Pick the treatment from this list by id, matching name AND length (if no length is given, use the 60-minute version, or the only version):\n${list.map((s) => `${s.id}: ${s.name} (${s.minutes} min)`).join("\n")}\nDates as YYYY-MM-DD ("tomorrow", "Friday" = the next one). Times as 24h HH:MM ("3pm" = 15:00). Leave fields empty if not given; never invent a phone or email.`,
-      tools: [{
-        name: "booking",
-        description: "The booking the owner asked for.",
-        input_schema: {
-          type: "object",
-          properties: {
-            service_id: { type: "integer" }, date: { type: "string" }, time: { type: "string" },
-            name: { type: "string", description: "guest name" }, phone: { type: "string" }, email: { type: "string" },
-            therapist: { type: "string", description: "therapist name if the owner asked for one" },
-            people: { type: "integer", description: "number of people, default 1" },
-            missing: { type: "string", description: "what is missing or unclear, in a few words; empty if all good" },
-          },
-          required: ["missing"],
-        },
-      }],
-      tool_choice: { type: "tool", name: "booking" },
+      system: `The spa owner wants to create a booking. Now in Tulum: ${tulumNow()} (today is ${today()}). Read the message (English or Spanish, loose wording) and pick the treatment from this list by id, matching name AND length (if no length is given, use the 60-minute version, or the only version):\n${list.map((s) => `${s.id}: ${s.name} (${s.minutes} min)`).join("\n")}\nDates as YYYY-MM-DD ("tomorrow", "Friday" = the next one). Times as 24h HH:MM ("3pm" = 15:00). Leave fields empty if not given; never invent a phone or email.\nReply with JSON only: {"service_id": number or null, "date": "YYYY-MM-DD" or "", "time": "HH:MM" or "", "name": "", "phone": "", "email": "", "therapist": "" (only if the owner asked for one), "people": number (default 1), "missing": "what is missing or unclear, a few words, or empty"}`,
       messages: [{ role: "user", content: text }],
     }),
   });
-  if (!res.ok) throw new Error(`Claude ${res.status}`);
+  if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 150)}`);
   const out = await res.json();
-  return (out.content || []).find((c) => c.type === "tool_use")?.input || {};
+  const raw = (out.content || []).map((c) => c.text || "").join("");
+  try { return JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1)); } catch { return { missing: "I couldn't read that" }; }
 }
 
 async function prepare(d) {
