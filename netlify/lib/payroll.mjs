@@ -15,8 +15,9 @@ const REBECA = [
   { re: /sauna/i, flat: 0, label: "Sauna (no commission)" },
   { re: /reset ritual/i, flat: 200 },
   { re: /glow ritual/i, flat: 200 },
-  { re: /couple/i, by: { 60: 200, 75: 250, 90: 350 }, couple: true },
-  { re: /cocoa embrace|clay wrap|rose ritual|pure hydration/i, flat: 350 },
+  { re: /^\s*(the\s+)?couple ritual\s*$/i, flat: 200, fl: 500, couple: true },   // two 60-min massages + free sauna
+  { re: /couple/i, flat: 350, fl: 700, couple: true },                              // all other couples rituals
+  { re: /cocoa embrace|clay wrap|rose ritual|pure hydration/i, flat: 350, fl: 700 },
   { re: /lymph/i, by: { 60: 300, 75: 350, 90: 400 } },
   { re: /honey|ayurved/i, flat: 250 },
   { re: /deep tissue|muscle recovery|hot stone|mayan clay|sobada/i, by: { 60: 250, 75: 300, 90: 350 } },
@@ -48,6 +49,7 @@ function amountFor(therapist, service, bookedMins) {
     if (r.flat != null) return { amount: r.flat };
     const b = minsBucket(mins); return r.by[b] != null ? { amount: r.by[b] } : { amount: 0, note: `⚠️ no rate for ${b} min` };
   }
+  if (r && r.fl != null) return { amount: r.fl };
   const b = minsBucket(mins);
   if (b === 30) return { amount: 0, note: "⚠️ no freelancer rate for 30 min, please edit" };
   const note = /facial/i.test(service) ? "⚠️ freelancer facial: check rate" : "";
