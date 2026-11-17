@@ -10,6 +10,8 @@ export default async (req) => {
   const txt = await req.text();
   try { d = JSON.parse(txt); } catch { d = Object.fromEntries(new URLSearchParams(txt)); }
   const id = d.booking_id || d.id, hash = d.booking_hash || d.hash, type = d.notification_type || d.type || "";
+  // Log every call (keys only, no values) so we can see what SimplyBook sends
+  try { await pstore().setJSON("sb-last-hit", { at: new Date().toISOString(), method: req.method, keys: Object.keys(d), type }); } catch {}
   if (!id || !hash) return new Response("ok");
   if (d.company && d.company !== "theartspatulum") return new Response("ok");
   const s = pstore();

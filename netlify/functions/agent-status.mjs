@@ -63,6 +63,10 @@ export default async () => {
     const l = await getStore("payroll").get("sb-last-callback", { type: "json" });
     if (l) cb = `${new Date(l.at).toLocaleString("en-US", { timeZone: "America/Cancun" })} (Tulum) — ${l.error ? "❌ " + l.error : `✅ ${l.type || "update"}: ${l.event} · ${l.unit} · ${l.date}`}`;
   } catch {}
+  try {
+    const h = await getStore("payroll").get("sb-last-hit", { type: "json" });
+    if (h) cb += ` · last call ${new Date(h.at).toLocaleString("en-US", { timeZone: "America/Cancun" })} (${h.method}, fields: ${h.keys.join(", ") || "none"})`;
+  } catch {}
   const lines = [
     "The Art Spa — agent status",
     "",
