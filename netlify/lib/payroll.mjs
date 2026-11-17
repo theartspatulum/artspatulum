@@ -15,7 +15,7 @@ const REBECA = [
   { re: /sauna/i, flat: 0, label: "Sauna (no commission)" },
   { re: /reset ritual/i, flat: 200 },
   { re: /glow ritual/i, flat: 200 },
-  { re: /couple/i, flat: 350, couple: true },
+  { re: /couple/i, by: { 60: 200, 75: 250, 90: 350 }, couple: true },
   { re: /cocoa embrace|clay wrap|rose ritual|pure hydration/i, flat: 350 },
   { re: /lymph/i, by: { 60: 300, 75: 350, 90: 400 } },
   { re: /honey|ayurved/i, flat: 250 },
@@ -27,9 +27,20 @@ const REBECA = [
 // Freelancers: by length; 120-min rituals (incl. 30 min sauna) pay as 90
 const FL_BY = { 60: 500, 75: 600, 90: 700 };
 
+// Rituals include free sauna time that therapists are NOT paid for.
+// Glow Ritual includes 15 min sauna; other rituals (and couples rituals) include 30 min.
+export function treatmentMinutes(service, mins) {
+  if (/sauna/i.test(service) && !/ritual/i.test(service)) return mins;          // Sauna & Pool: no therapist anyway
+  if (/sauna\s*&\s*face mask/i.test(service)) return mins;                    // no commission anyway
+  if (/glow ritual/i.test(service)) return Math.max(mins - 15, 0);
+  if (/ritual/i.test(service)) return Math.max(mins - 30, 0);
+  return mins;
+}
+
 function rule(name) { return REBECA.find((r) => r.re.test(name)) || null; }
 
-function amountFor(therapist, service, mins) {
+function amountFor(therapist, service, bookedMins) {
+  const mins = treatmentMinutes(service, bookedMins);
   const r = rule(service);
   if (r && r.flat === 0) return { amount: 0, note: "no commission" };
   if (isRebeca(therapist)) {
@@ -62,7 +73,9 @@ export async function computeDay(date) {
     const wd = new Date(date + "T12:00:00").getDay(); // 0 Sun … 6 Sat
     const offShift = isRebeca(therapist) && (wd === 0 || wd === 6 || (wd === 5 && time >= "16:00") || time >= "19:00");
     const note = [a.note, offShift ? "⚠️ Rebeca isn't on shift then: should this be a freelancer?" : ""].filter(Boolean).join(" · ");
-    lines.push({ booking: bk.id, time, service, mins, therapist, client, amount: a.amount, note });
+    const paidMins = treatmentMinutes(service, mins);
+    const note2 = [note, paidMins !== mins ? `paid ${paidMins} min (sauna not paid)` : ""].filter(Boolean).join(" · ");
+    lines.push({ booking: bk.id, time, service, mins, therapist, client, amount: a.amount, note: note2 });
     if (rule(service)?.couple) {
       const fl = amountFor("FL", service, mins);
       lines.push({ booking: bk.id, time, service, mins, therapist: "FL", client, amount: fl.amount, note: "second therapist (couples, freelancer)" });
