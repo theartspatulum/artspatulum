@@ -13,7 +13,7 @@ const tulumNow = () => new Date().toLocaleString("en-US", { timeZone: "America/C
 
 // ---------- SimplyBook helpers ----------
 let catalogCache = null;
-async function catalog() {
+export async function catalog() {
   if (catalogCache && catalogCache.until > Date.now()) return catalogCache.list;
   const ev = Object.values((await sbServices()) || {}).filter((e) => e.is_public !== "0" && e.is_active !== "0");
   const list = ev.map((e) => ({
@@ -27,17 +27,16 @@ async function catalog() {
   return list;
 }
 
-async function freeTimes(serviceId, from, to) {
+export async function freeTimes(serviceId, from, to) {
   const m = (await call("getStartTimeMatrix", [from, to || from, Number(serviceId), null, 1])) || {};
   const out = {};
   for (const [d, times] of Object.entries(m)) out[d] = (times || []).map((t) => t.slice(0, 5));
   return out;
 }
 
-async function bookReal({ service_id, date, time, name, phone, email }) {
+export async function bookReal({ service_id, date, time, name, phone, email, unit = null }) {
   const t = time.length === 5 ? time + ":00" : time;
-  let unit = null;
-  try {
+  if (!unit) try {
     const units = await call("getAvailableUnits", [Number(service_id), `${date} ${t}`, 1]);
     if (Array.isArray(units) && units.length) unit = units[0];
   } catch {}

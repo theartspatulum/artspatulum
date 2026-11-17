@@ -1,9 +1,14 @@
 // Receives messages and button taps from Telegram.
 import { send, tg, esc, webhookSecret, hasTelegram } from "../lib/telegram.mjs";
 import { store, getChat, fetchPlace, proposeReply, finalCopy, draftReply, keyboard } from "../lib/reputation.mjs";
-import { resetConversation } from "../lib/concierge.mjs";
+import { resetConversation, cstore } from "../lib/concierge.mjs";
+const cstoreDel = (k) => cstore().delete(k);
 import { reportText, getFixed, setFixed, deleteExpense, updateExpense, savedText, savedKeyboard, categoryKeyboard, CATEGORIES, money as emoney, tulumDate as etoday } from "../lib/expenses.mjs";
 
+async function runBook(req, payload) {
+  const base = process.env.URL || new URL(req.url).origin;
+  await fetch(base + "/.netlify/functions/book-background", { method: "POST", body: JSON.stringify({ ...payload, key: webhookSecret() }) });
+}
 async function runExpense(req, payload) {
   const base = process.env.URL || new URL(req.url).origin;
   await fetch(base + "/.netlify/functions/expense-background", { method: "POST", body: JSON.stringify({ ...payload, key: webhookSecret() }) });
@@ -38,6 +43,8 @@ export default async (req) => {
         else { const it = await updateExpense(month, id, { category: CATEGORIES[Number(ci)] }); if (it) await send(chat, savedText(month, it), { reply_markup: savedKeyboard(month, id) }); }
         return new Response("ok");
       }
+      if (action === "bkok") { await send(chat, "⏳ Booking…"); await runBook(req, { step: "confirm", id: key, chat }); return new Response("ok"); }
+      if (action === "bkno") { await cstoreDel("bkreq-" + key); await send(chat, "👍 Cancelled, nothing was booked."); return new Response("ok"); }
       if (["pyok", "pyed", "flpaid"].includes(action)) {
         const ps = pstore();
         if (action === "flpaid") { await ps.set("fl-paid-through", key); await send(chat, `✅ Freelancers marked as paid through ${key}.`); return new Response("ok"); }
@@ -124,6 +131,13 @@ export default async (req) => {
         await ps.setJSON("day-" + date, day);
         await send(chat, dayText(date, lines, day.tips), { reply_markup: dayKeyboard(date) });
       } catch (e) { await send(chat, "⚠️ Couldn't read SimplyBook bookings: " + String(e.message).slice(0, 200)); }
+      return new Response("ok");
+    }
+    if (text.startsWith("/book")) {
+      const rest = text.replace(/^\/book\s*/i, "");
+      if (!rest) { await send(chat, "Tell me the booking in your own words:\n<b>/book Maria, Deep Tissue 90, tomorrow 3pm, +52 984 123 4567</b>\n<b>/book Juan y Ana, couple ritual, viernes 11am, con Rosi</b>\nI'll check SimplyBook and ask you to confirm before booking."); return new Response("ok"); }
+      await send(chat, "🔎 Checking SimplyBook…");
+      await runBook(req, { step: "prepare", text: rest, chat });
       return new Response("ok");
     }
     if (text.startsWith("/tip")) {
@@ -229,7 +243,7 @@ export default async (req) => {
           await finalCopy(chat, rec);
         }
       } else {
-        await send(chat, "Commands: /reply – draft a review reply · /guest – test the WhatsApp concierge. New reviews appear here automatically.");
+        await send(chat, "Commands: /book – make a booking · /reply – draft a review reply · /guest – test the WhatsApp concierge. New reviews appear here automatically.");
       }
     }
   } catch (e) {
