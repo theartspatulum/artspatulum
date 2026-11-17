@@ -90,7 +90,7 @@ async function confirm(d) {
   const free = (await freeTimes(r.service_id, r.date)) || {};
   if (!(free[r.date] || []).includes(r.time)) { await send(d.chat, `❌ Someone just took ${r.time} on ${nice(r.date)}. Send /book again for another time.`); return; }
   const res = await bookReal({ service_id: r.service_id, date: r.date, time: r.time, name: r.name, phone: r.phone, email: r.email || "booking@theartspatulum.mx", unit: r.unit });
-  await send(d.chat, `✅ <b>Booked in SimplyBook</b>${res.code ? " · code " + esc(res.code) : ""}\n${esc(r.service)} · ${nice(r.date)} at ${r.time}\n👤 ${esc(r.name)} · 💆 ${esc(r.unitName)}`);
+  await send(d.chat, `✅ <b>Booked in SimplyBook</b>${res.code ? " · code " + esc(res.code) : ""}\n${esc(r.service)} · ${nice(r.date)} at ${r.time}\n👤 ${esc(r.name)} · 💆 ${esc(r.unitName)}\n💳 ${res.pay_later === "ok" ? "Pay later ✅" : res.pay_later === "no invoice" ? "No invoice was created (pay at the spa)" : "⚠️ Couldn't set Pay later: " + esc(res.pay_later)}`);
 }
 
 export default async (req) => {
