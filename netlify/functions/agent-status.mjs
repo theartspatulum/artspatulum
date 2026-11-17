@@ -58,6 +58,11 @@ export default async () => {
       py = "❌ " + String(e.message).slice(0, 160) + ` · password box ${pw.startsWith("api_user_key_") ? "holds an API User Key ✅" : "does NOT start with api_user_key_ (looks like a normal password)"}`;
     }
   }
+  let cb = "waiting for the first booking notification from SimplyBook";
+  try {
+    const l = await getStore("payroll").get("sb-last-callback", { type: "json" });
+    if (l) cb = `${new Date(l.at).toLocaleString("en-US", { timeZone: "America/Cancun" })} (Tulum) — ${l.error ? "❌ " + l.error : `✅ ${l.type || "update"}: ${l.event} · ${l.unit} · ${l.date}`}`;
+  } catch {}
   const lines = [
     "The Art Spa — agent status",
     "",
@@ -70,7 +75,7 @@ export default async () => {
     `SimplyBook secret key ..... ${has("SIMPLYBOOK_SECRET_KEY")}`,
     `SimplyBook booking API .... ${sb}`,
     `WhatsApp via Telnyx ....... ${wa}`,
-    `Payroll (SimplyBook login)  ${py}`,
+    `Payroll bookings feed ..... ${cb}`,
     "",
     `Last contact from Gmail ... ${last}`,
     "",

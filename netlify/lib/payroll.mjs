@@ -45,12 +45,15 @@ function amountFor(therapist, service, mins) {
 
 // Build the day's lines from SimplyBook bookings
 export async function computeDay(date) {
-  const raw = await bookingsOn(date);
+  // Bookings collected from SimplyBook's notifications (no admin login needed);
+  // falls back to the admin login if one works.
+  let raw = Object.values((await pstore().get("bk-" + date, { type: "json" })) || {});
+  if (!raw.length && process.env.SIMPLYBOOK_ADMIN_LOGIN) { try { raw = await bookingsOn(date); } catch {} }
   const lines = [];
   for (const bk of raw) {
     const service = bk.event || bk.event_name || bk.service || "";
     const therapist = bk.unit || bk.unit_name || bk.provider || "Unassigned";
-    const start = String(bk.start_date || ""), end = String(bk.end_date || "");
+    const start = String(bk.start || bk.start_date || ""), end = String(bk.end || bk.end_date || "");
     const mins = Math.round((new Date(end.replace(" ", "T")) - new Date(start.replace(" ", "T"))) / 60000) || 60;
     const time = start.slice(11, 16);
     const client = (bk.client || bk.client_name || "").toString().split(" ")[0];
