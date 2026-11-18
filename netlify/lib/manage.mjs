@@ -18,7 +18,7 @@ async function understand(text, mode) {
     body: JSON.stringify({
       model: "claude-sonnet-5-5",
       max_tokens: 300,
-      system: `The spa owner wants to ${mode === "move" ? "move (reschedule) an existing booking" : "cancel an existing booking"}. Now in Tulum: ${tulumNow()} (today is ${today()}). Read the message (English or Spanish, loose wording). Dates as YYYY-MM-DD ("tomorrow", "Friday" = the next one). Times as 24h HH:MM ("3pm" = 15:00).${mode === "move" ? ' The CURRENT booking time comes first, the NEW time usually after "to", "a", "para" or "→".' : ""}\nReply with JSON only: {"name": "", "phone": "exactly as written", "email": "", "code": "booking code if given", "date": "current booking date or empty", "time": "current booking time or empty"${mode === "move" ? ', "new_date": "", "new_time": ""' : ""}}. Leave fields empty if not given; never invent anything.`,
+      system: `The spa owner wants to ${mode === "move" ? "move (reschedule) an existing booking" : "cancel an existing booking"}. Now in Tulum: ${tulumNow()} (today is ${today()}). Read the message (English or Spanish, loose wording). Dates as YYYY-MM-DD ("tomorrow", "Friday" = the next one). Times as 24h HH:MM ("3pm" = 15:00).${mode === "move" ? ' The CURRENT booking time comes first, the NEW time usually after "to", "a", "para" or "→". If the owner wants a different therapist ("with Rosi", "con Rosi", "assign to Rosi", "change therapist to Rosi"), put that name in new_therapist; leave new_date/new_time empty if only the therapist changes.' : ""}\nReply with JSON only: {"name": "", "phone": "exactly as written", "email": "", "code": "booking code if given", "date": "current booking date or empty", "time": "current booking time or empty"${mode === "move" ? ', "new_date": "", "new_time": "", "new_therapist": ""' : ""}}. Leave fields empty if not given; never invent anything.`,
       messages: [{ role: "user", content: text }],
     }),
   });
@@ -97,8 +97,8 @@ export async function prepareManage(d, mode) {
       : "Which booking? Example: <b>/cancel Vic Tore tomorrow 5pm</b> (or the booking code)");
     return;
   }
-  if (mode === "move" && (!q.new_date || !q.new_time)) {
-    await send(d.chat, "What's the <b>new date and time</b>? Example: <b>/move Vic Tore tomorrow 5pm to Friday 3pm</b>");
+  if (mode === "move" && !q.new_therapist && (!q.new_date || !q.new_time)) {
+    await send(d.chat, "What's the <b>new date and time</b> or the <b>new therapist</b>? Examples:\n<b>/move Vic Tore tomorrow 5pm to Friday 3pm</b>\n<b>/assign Vic Tore tomorrow 5pm to Rosi</b>");
     return;
   }
   const f = await findBooking(q);
@@ -117,23 +117,39 @@ export async function prepareManage(d, mode) {
     return;
   }
 
-  // move: check the new time is free for this service, keep the same therapist if possible
-  const nt = q.new_time.slice(0, 5), nd = q.new_date;
-  const free = ((await freeTimes(b.serviceId, nd)) || {})[nd] || [];
-  const avail = ((await call("getAvailableUnits", [b.serviceId, `${nd} ${nt}:00`, 1])) || []).map(String);
-  if (!free.includes(nt) || !avail.length) {
-    const alt = free.slice(0, 6).join(", ");
-    await send(d.chat, `❌ ${esc(b.service)} isn't free on ${nice(nd)} at ${nt}.${alt ? `\nFree that day: <b>${alt}</b>` : ""}\n\nSend /move again with another time.`);
-    return;
+  // move / reassign: check the new slot, keep or change the therapist
+  const nd = q.new_date || b.date, nt = (q.new_time || b.time).slice(0, 5);
+  const sameSlot = nd === b.date && nt === b.time;
+  const all = Object.values((await therapists()) || {});
+  const name = (id) => all.find((u) => String(u.id) === String(id))?.name || `#${id}`;
+  if (!sameSlot) {
+    const free = ((await freeTimes(b.serviceId, nd)) || {})[nd] || [];
+    if (!free.includes(nt)) {
+      const alt = free.slice(0, 6).join(", ");
+      await send(d.chat, `❌ ${esc(b.service)} isn't free on ${nice(nd)} at ${nt}.${alt ? `\nFree that day: <b>${alt}</b>` : ""}\n\nSend /move again with another time.`);
+      return;
+    }
   }
+  const avail = ((await call("getAvailableUnits", [b.serviceId, `${nd} ${nt}:00`, 1])) || []).map(String);
+  if (sameSlot) avail.push(String(b.unitId)); // the booking's own therapist is "busy" only with this booking
   let unitId = b.unitId, therapist = b.therapist, note = "";
-  if (!avail.includes(String(unitId))) {
-    unitId = Number(avail[0]);
-    therapist = Object.values((await therapists()) || {}).find((u) => String(u.id) === String(unitId))?.name || `#${unitId}`;
+  if (q.new_therapist) {
+    const want = all.find((u) => String(u.name || "").toLowerCase().includes(q.new_therapist.toLowerCase().trim()));
+    if (!want) { await send(d.chat, `🤔 I don't know a therapist called <b>${esc(q.new_therapist)}</b>. Therapists: ${all.map((u) => esc(u.name)).join(", ")}`); return; }
+    if (!avail.includes(String(want.id))) {
+      const others = [...new Set(avail)].filter((x) => String(x) !== String(b.unitId) || !sameSlot).map(name);
+      await send(d.chat, `❌ <b>${esc(want.name)}</b> isn't free on ${nice(nd)} at ${nt}.${others.length ? `\nFree then: <b>${others.map(esc).join(", ")}</b>` : ""}`);
+      return;
+    }
+    unitId = Number(want.id); therapist = want.name;
+    if (sameSlot && String(unitId) === String(b.unitId)) { await send(d.chat, `👍 ${esc(therapist)} is already assigned to this booking. Nothing to change.`); return; }
+  } else if (!avail.includes(String(unitId))) {
+    if (!avail.length) { await send(d.chat, `❌ No therapist is free on ${nice(nd)} at ${nt}.`); return; }
+    unitId = Number(avail[0]); therapist = name(unitId);
     note = `\n⚠️ ${esc(b.therapist)} isn't free then, so the therapist changes to <b>${esc(therapist)}</b>.`;
   }
   await cstore().setJSON("mgreq-" + id, { mode, booking: b, newDate: nd, newTime: nt, unitId, therapist });
-  await send(d.chat, `🔁 <b>Move this booking?</b>\nFrom: ${line(b)}\nTo: <b>${nice(nd)} ${nt}</b> · 💆 ${esc(therapist)}${note}\n\nNothing changes until you tap ✅.`,
+  await send(d.chat, `🔁 <b>${sameSlot ? "Change the therapist?" : "Move this booking?"}</b>\nFrom: ${line(b)}\nTo: <b>${nice(nd)} ${nt}</b> · 💆 <b>${esc(therapist)}</b>${note}\n\nNothing changes until you tap ✅.`,
     { reply_markup: { inline_keyboard: [[{ text: "✅ Yes, move it", callback_data: `mgok:${id}` }, { text: "↩️ Keep as is", callback_data: `mgno:${id}` }]] } });
 }
 
@@ -151,5 +167,5 @@ export async function confirmManage(d) {
   const end = new Date(new Date(`${r.newDate}T${r.newTime}:00Z`).getTime() + b.minutes * 60000).toISOString();
   const res = await admin("editBook", [b.id, b.serviceId, r.unitId, b.clientId, r.newDate, r.newTime + ":00", end.slice(0, 10), end.slice(11, 19), 0, {}]);
   if (!res) throw new Error("SimplyBook didn't accept the new time");
-  await send(d.chat, `🔁 <b>Moved in SimplyBook</b>\n${esc(b.service)} · ${esc(b.client)}\n${nice(b.date)} ${b.time} → <b>${nice(r.newDate)} ${r.newTime}</b> · 💆 ${esc(r.therapist)}`);
+  await send(d.chat, `🔁 <b>Updated in SimplyBook</b>\n${esc(b.service)} · ${esc(b.client)}\n${nice(b.date)} ${b.time} → <b>${nice(r.newDate)} ${r.newTime}</b> · 💆 ${esc(r.therapist)}`);
 }

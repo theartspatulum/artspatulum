@@ -135,10 +135,10 @@ export default async (req) => {
       } catch (e) { await send(chat, "⚠️ Couldn't read SimplyBook bookings: " + String(e.message).slice(0, 200)); }
       return new Response("ok");
     }
-    if (text.startsWith("/cancel") || text.startsWith("/move")) {
+    if (text.startsWith("/cancel") || text.startsWith("/move") || text.startsWith("/assign")) {
       const mode = text.startsWith("/cancel") ? "cancel" : "move";
-      const rest = text.replace(/^\/(cancel|move)\s*/i, "");
-      if (!rest) { await send(chat, mode === "cancel" ? "Which booking? <b>/cancel Vic Tore tomorrow 5pm</b> (name or WhatsApp number + date/time, or the booking code). I'll show it and ask before cancelling." : "Which booking and the new time? <b>/move Vic Tore tomorrow 5pm to Friday 3pm</b>. I'll check the new time is free and ask before moving."); return new Response("ok"); }
+      const rest = (text.startsWith("/assign") ? "change therapist: " : "") + text.replace(/^\/(cancel|move|assign)\s*/i, "");
+      if (!rest || rest === "change therapist: ") { await send(chat, text.startsWith("/assign") ? "Which booking and which therapist? <b>/assign Vic Tore tomorrow 5pm to Rosi</b>" : mode === "cancel" ? "Which booking? <b>/cancel Vic Tore tomorrow 5pm</b> (name or WhatsApp number + date/time, or the booking code). I'll show it and ask before cancelling." : "Which booking and the new time? <b>/move Vic Tore tomorrow 5pm to Friday 3pm</b>. I'll check the new time is free and ask before moving."); return new Response("ok"); }
       await send(chat, "🔎 Looking it up in SimplyBook…");
       await runBook(req, { step: mode, text: rest, chat });
       return new Response("ok");
