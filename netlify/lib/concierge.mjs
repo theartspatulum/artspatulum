@@ -41,20 +41,13 @@ export async function bookReal({ service_id, date, time, name, phone, email, uni
     if (Array.isArray(units) && units.length) unit = units[0];
   } catch {}
   const client = { name, phone: phone || "", email: email || "whatsapp.guest@theartspatulum.mx" };
-  // handle_invoice: SimplyBook creates the invoice; we then mark it "Pay later" (processor "delay")
-  const res = await call("book", [Number(service_id), unit, date, t, client, { handle_invoice: true }, 1]);
+  const res = await call("book", [Number(service_id), unit, date, t, client, {}, 1]);
   const b = res?.bookings?.[0];
   if (res?.require_confirm && b) {
     const sign = createHash("md5").update(String(b.id) + b.hash + process.env.SIMPLYBOOK_SECRET_KEY).digest("hex");
     await call("confirmBooking", [b.id, sign]);
   }
-  let payLater = "no invoice";
-  const inv = res?.invoice?.id || res?.invoice_id || b?.invoice_id;
-  if (inv) {
-    try { await call("confirmInvoice", [Number(inv), "delay"]); payLater = "ok"; }
-    catch (e) { payLater = "failed: " + String(e.message).slice(0, 120); }
-  }
-  return { booking_id: b?.id, code: b?.code, pay_later: payLater };
+  return { booking_id: b?.id, code: b?.code, pay_later: res?.require_payment || res?.invoice ? "needs payment" : "ok" };
 }
 
 // ---------- Rules (the robot's "training") ----------

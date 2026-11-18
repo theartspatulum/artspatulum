@@ -82,6 +82,7 @@ async function prepare(d) {
 }
 
 async function confirm(d) {
+  if (process.env.BOOK_ENABLED !== "yes") { await send(d.chat, "⏸️ /book is paused: SimplyBook auto-cancels unpaid bookings made from outside. I'll switch it back on once the admin connection works."); return; }
   const s = cstore();
   const r = await s.get("bkreq-" + d.id, { type: "json" });
   if (!r) { await send(d.chat, "That booking request expired or was already used. Send /book again."); return; }
@@ -90,7 +91,7 @@ async function confirm(d) {
   const free = (await freeTimes(r.service_id, r.date)) || {};
   if (!(free[r.date] || []).includes(r.time)) { await send(d.chat, `❌ Someone just took ${r.time} on ${nice(r.date)}. Send /book again for another time.`); return; }
   const res = await bookReal({ service_id: r.service_id, date: r.date, time: r.time, name: r.name, phone: r.phone, email: r.email || "booking@theartspatulum.mx", unit: r.unit });
-  await send(d.chat, `✅ <b>Booked in SimplyBook</b>${res.code ? " · code " + esc(res.code) : ""}\n${esc(r.service)} · ${nice(r.date)} at ${r.time}\n👤 ${esc(r.name)} · 💆 ${esc(r.unitName)}\n💳 ${res.pay_later === "ok" ? "Pay later ✅" : res.pay_later === "no invoice" ? "No invoice was created (pay at the spa)" : "⚠️ Couldn't set Pay later: " + esc(res.pay_later)}`);
+  await send(d.chat, `✅ <b>Booked in SimplyBook</b>${res.code ? " · code " + esc(res.code) : ""}\n${esc(r.service)} · ${nice(r.date)} at ${r.time}\n👤 ${esc(r.name)} · 💆 ${esc(r.unitName)}${res.pay_later === "ok" ? "" : "\n⚠️ SimplyBook may ask for online payment and auto-cancel this booking. Check it in SimplyBook."}`);
 }
 
 export default async (req) => {
