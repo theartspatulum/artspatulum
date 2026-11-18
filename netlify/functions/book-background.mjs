@@ -4,6 +4,7 @@
 import { send, esc, webhookSecret } from "../lib/telegram.mjs";
 import { catalog, freeTimes, cstore } from "../lib/concierge.mjs";
 import { call, therapists, adminBook } from "../lib/simplybook.mjs";
+import { prepareManage, confirmManage } from "../lib/manage.mjs";
 import { normPhone, hasPhone, validEmail, fullName, findGuest, createGuest } from "../lib/guests.mjs";
 
 const tulumNow = () => new Date().toLocaleString("en-US", { timeZone: "America/Cancun", weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -139,9 +140,11 @@ export default async (req) => {
   if (d.key !== webhookSecret()) return new Response("forbidden", { status: 403 });
   try {
     if (d.step === "confirm") await confirm(d);
+    else if (d.step === "cancel" || d.step === "move") await prepareManage(d, d.step);
+    else if (d.step === "manage-confirm") await confirmManage(d);
     else await prepare(d);
   } catch (e) {
-    await send(d.chat, "⚠️ Booking problem: " + esc(String(e.message)).slice(0, 200) + "\nNothing was booked. You can book directly in SimplyBook.");
+    await send(d.chat, "⚠️ Booking problem: " + esc(String(e.message)).slice(0, 200) + (d.step === "confirm" || d.step === "prepare" || !d.step ? "\nNothing was booked." : "\nNothing was changed.") + " You can do it directly in SimplyBook.");
   }
   return new Response("ok");
 };

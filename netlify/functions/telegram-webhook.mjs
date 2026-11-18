@@ -44,6 +44,8 @@ export default async (req) => {
         return new Response("ok");
       }
       if (action === "bkok") { await send(chat, "⏳ Booking…"); await runBook(req, { step: "confirm", id: key, chat }); return new Response("ok"); }
+      if (action === "mgok") { await send(chat, "⏳ Updating SimplyBook…"); await runBook(req, { step: "manage-confirm", id: key, chat }); return new Response("ok"); }
+      if (action === "mgno") { await cstoreDel("mgreq-" + key); await send(chat, "👍 Kept as is, nothing changed."); return new Response("ok"); }
       if (action === "bkno") { await cstoreDel("bkreq-" + key); await send(chat, "👍 Cancelled, nothing was booked."); return new Response("ok"); }
       if (["pyok", "pyed", "flpaid"].includes(action)) {
         const ps = pstore();
@@ -131,6 +133,14 @@ export default async (req) => {
         await ps.setJSON("day-" + date, day);
         await send(chat, dayText(date, lines, day.tips), { reply_markup: dayKeyboard(date) });
       } catch (e) { await send(chat, "⚠️ Couldn't read SimplyBook bookings: " + String(e.message).slice(0, 200)); }
+      return new Response("ok");
+    }
+    if (text.startsWith("/cancel") || text.startsWith("/move")) {
+      const mode = text.startsWith("/cancel") ? "cancel" : "move";
+      const rest = text.replace(/^\/(cancel|move)\s*/i, "");
+      if (!rest) { await send(chat, mode === "cancel" ? "Which booking? <b>/cancel Vic Tore tomorrow 5pm</b> (name or WhatsApp number + date/time, or the booking code). I'll show it and ask before cancelling." : "Which booking and the new time? <b>/move Vic Tore tomorrow 5pm to Friday 3pm</b>. I'll check the new time is free and ask before moving."); return new Response("ok"); }
+      await send(chat, "🔎 Looking it up in SimplyBook…");
+      await runBook(req, { step: mode, text: rest, chat });
       return new Response("ok");
     }
     if (text.startsWith("/book")) {
