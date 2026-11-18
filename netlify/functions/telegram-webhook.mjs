@@ -135,6 +135,7 @@ export default async (req) => {
       } catch (e) { await send(chat, "⚠️ Couldn't read SimplyBook bookings: " + String(e.message).slice(0, 200)); }
       return new Response("ok");
     }
+    if (text === "/sbcheck") { await send(chat, "🔬 Checking SimplyBook…"); await runBook(req, { step: "sbcheck", chat }); return new Response("ok"); }
     if (text.startsWith("/cancel") || text.startsWith("/move") || text.startsWith("/assign")) {
       const mode = text.startsWith("/cancel") ? "cancel" : "move";
       const rest = (text.startsWith("/assign") ? "change therapist: " : "") + text.replace(/^\/(cancel|move|assign)\s*/i, "");

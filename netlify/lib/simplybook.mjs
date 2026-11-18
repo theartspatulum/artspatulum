@@ -61,3 +61,28 @@ export async function adminBook({ serviceId, unitId, clientId, date, time, minut
   if (res.require_confirm) { try { await admin("pluginApproveBookingApprove", [Number(b.id)]); } catch {} }
   return { booking_id: b.id, code: b.code };
 }
+
+// ---------- REST Admin API (v2): needed for payments and add-ons ----------
+const REST = "https://user-api-v2.simplybook.me/admin";
+let restCached = null;
+export async function restToken() {
+  if (restCached && restCached.until > Date.now()) return restCached.t;
+  const res = await fetch(REST + "/auth", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ company: COMPANY, login: process.env.SIMPLYBOOK_ADMIN_LOGIN, password: process.env.SIMPLYBOOK_ADMIN_PASSWORD }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.token) throw new Error(`SimplyBook REST login ${res.status}: ${data.message || JSON.stringify(data).slice(0, 120)}`);
+  restCached = { t: data.token, until: Date.now() + 30 * 60 * 1000 };
+  return data.token;
+}
+// Returns { status, data } and never throws on HTTP errors, so callers can explain what happened.
+export async function rest(method, path, body) {
+  const t = await restToken();
+  const res = await fetch(REST + path, {
+    method, headers: { "content-type": "application/json", "X-Company-Login": COMPANY, "X-Token": t },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => null);
+  return { status: res.status, data };
+}
