@@ -44,25 +44,47 @@ async function details(id) {
 
 const line = (b) => `${nice(b.date)} ${b.time} · ${esc(b.service)} · ${esc(b.client)} · 💆 ${esc(b.therapist)}${b.code ? " · code " + esc(b.code) : ""}`;
 
+// SimplyBook isn't consistent about field names; read the start "YYYY-MM-DD HH:MM" from whatever is there
+function startOf(b) {
+  for (const v of [b.start_date_time, b.start_datetime, b.start_date, b.start]) {
+    const x = String(v || "");
+    if (x.length >= 16) return x.replace("T", " ").slice(0, 16);
+  }
+  const d = String(b.start_date || b.date || "").slice(0, 10), t = String(b.start_time || b.time || "").slice(0, 5);
+  return d && t ? `${d} ${t}` : d;
+}
+const nameOf = (b) => String(b.client_name || b.client || b.client_full_name || "");
+
 // Find the booking the owner means. Returns { one } | { many } | { none: reason }
 async function findBooking(q) {
   const from = q.date || today(), to = q.date || addDays(today(), 90);
-  const filter = { date_from: from, date_to: to, booking_type: "non_cancelled", order: "start_date" };
-  let clientName = "";
+  const base = { date_from: from, date_to: to, booking_type: "non_cancelled", order: "start_date" };
+  let guest = null;
   if (!q.code && (q.phone || q.email || q.name)) {
     const g = await findGuest(q);
     if (g.many) return { none: "several guests match that name. Use their WhatsApp number or email." };
-    if (g.match) filter.client_id = g.match.id;
-    else clientName = String(q.name || "").toLowerCase();
-    if (!g.match && !clientName) return { none: "I couldn't find that guest in SimplyBook." };
+    guest = g.match || null;
+    if (!guest && !q.name) return { none: "I couldn't find that guest in SimplyBook." };
   }
-  let list = asList(await admin("getBookings", [filter]));
+  const wantName = String(guest?.name || q.name || "").toLowerCase().trim();
+  // By client id first; if SimplyBook ignores/rejects that filter, fall back to the date range + name
+  let list = [];
+  if (guest) { try { list = asList(await admin("getBookings", [{ ...base, client_id: guest.id }])); } catch {} }
+  if (!list.length) list = asList(await admin("getBookings", [base]));
+  const all = list.length;
   const code = String(q.code || "").trim().toLowerCase();
   if (code) list = list.filter((b) => String(b.code || "").toLowerCase() === code);
-  if (clientName) list = list.filter((b) => String(b.client_name || b.client || "").toLowerCase().includes(clientName));
+  else if (wantName) list = list.filter((b) => (guest && String(b.client_id) === String(guest.id)) || nameOf(b).toLowerCase().includes(wantName));
+  const forGuest = list.length;
   const t = String(q.time || "").slice(0, 5);
-  if (t) list = list.filter((b) => String(b.start_date || b.start_date_time || b.start || "").slice(11, 16) === t);
-  if (!list.length) return { none: "I couldn't find a matching booking." };
+  const timesSeen = list.map((b) => startOf(b).slice(11, 16)).filter(Boolean);
+  if (t) list = list.filter((b) => startOf(b).slice(11, 16) === t);
+  if (!list.length) {
+    const when = q.date ? `on ${nice(q.date)}` : "in the next 90 days";
+    if (!all) return { none: `SimplyBook shows no active bookings ${when}.` };
+    if (!forGuest) return { none: `I see ${all} booking(s) ${when}, but none for ${code ? "that code" : esc(guest?.name || q.name)}.` };
+    return { none: `${esc(guest?.name || q.name)} has ${forGuest} booking(s) ${when}, but not at ${t} (times: ${timesSeen.join(", ") || "unknown"}).` };
+  }
   const full = await Promise.all(list.slice(0, 6).map((b) => details(b.id)));
   return full.length === 1 ? { one: full[0] } : { many: full };
 }
@@ -80,7 +102,7 @@ export async function prepareManage(d, mode) {
     return;
   }
   const f = await findBooking(q);
-  if (f.none) { await send(d.chat, `🔎 ${esc(f.none)}`); return; }
+  if (f.none) { await send(d.chat, `🔎 ${f.none}`); return; }
   if (f.many) {
     await send(d.chat, `👥 I found ${f.many.length} bookings:\n${f.many.map((b) => "• " + line(b)).join("\n")}\n\nSend it again with the <b>date and time</b> (or the code) so I pick the right one.`);
     return;
