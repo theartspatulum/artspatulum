@@ -30,7 +30,8 @@ const clean = (c) => ({ id: Number(c.id), name: String(c.name || "").trim(), ema
 
 async function search(q) {
   if (!q) return [];
-  try { return asList(await admin("getClientList", [q, 20])).map(clean).filter((c) => c.id); } catch { return []; }
+  // No silent failures: if the admin login is broken we must not treat a returning guest as new
+  return asList(await admin("getClientList", [q, 20])).map(clean).filter((c) => c.id);
 }
 
 // Same phone if all digits match, or the last 10 digits match (SimplyBook sometimes stores
