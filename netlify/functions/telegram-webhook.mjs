@@ -135,7 +135,7 @@ export default async (req) => {
     }
     if (text.startsWith("/book")) {
       const rest = text.replace(/^\/book\s*/i, "");
-      if (!rest) { await send(chat, "Tell me the booking in your own words:\n<b>/book Maria, Deep Tissue 90, tomorrow 3pm, +52 984 123 4567</b>\n<b>/book Juan y Ana, couple ritual, viernes 11am, con Rosi</b>\nI'll check SimplyBook and ask you to confirm before booking."); return new Response("ok"); }
+      if (!rest) { await send(chat, "Tell me the booking in your own words:\n<b>/book Maria Lopez, maria@gmail.com, +1 305 433 3445, Reset Aroma 60, tomorrow 3pm</b>\nReturning guest? Just the name or WhatsApp number is enough:\n<b>/book +52 984 123 4567, Reset Aroma 60, viernes 11am, con Rebeca</b>\nNew guests need first + last name, email and WhatsApp number with country code. I\'ll check SimplyBook and ask you to confirm before booking."); return new Response("ok"); }
       await send(chat, "🔎 Checking SimplyBook…");
       await runBook(req, { step: "prepare", text: rest, chat });
       return new Response("ok");

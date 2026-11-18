@@ -49,3 +49,15 @@ export async function bookingsOn(date) {
   const r = await admin("getBookings", [{ date_from: date, date_to: date, booking_type: "non_cancelled", order: "start_date" }]);
   return Array.isArray(r) ? r : Object.values(r || {});
 }
+
+// Book as the spa (admin), attached to an existing client id.
+// Admin bookings are staff bookings, so SimplyBook doesn't treat them as unpaid online orders.
+export async function adminBook({ serviceId, unitId, clientId, date, time, minutes, additional = {}, count = 1 }) {
+  const t = time.length === 5 ? time + ":00" : time;
+  const end = new Date(new Date(`${date}T${t}Z`).getTime() + Number(minutes) * 60000).toISOString();
+  const res = await admin("book", [Number(serviceId), Number(unitId), Number(clientId), date, t, end.slice(0, 10), end.slice(11, 19), 0, additional, count]);
+  const b = res?.bookings?.[0];
+  if (!b?.id) throw new Error("SimplyBook didn't confirm the booking: " + JSON.stringify(res).slice(0, 150));
+  if (res.require_confirm) { try { await admin("pluginApproveBookingApprove", [Number(b.id)]); } catch {} }
+  return { booking_id: b.id, code: b.code };
+}
