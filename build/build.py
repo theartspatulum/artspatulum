@@ -44,6 +44,7 @@ def u(page, lang, obj=None):
     if page == "faq": return "/faq/" if en else "/es/preguntas-frecuentes/"
     if page == "contact": return "/contact/" if en else "/es/contacto/"
     if page == "thera": return "/therapeutic-massage/" if en else "/es/masaje-terapeutico/"
+    if page == "lymph": return "/lymphatic-drainage-massage-tulum/" if en else "/es/drenaje-linfatico-tulum/"
     raise KeyError(page)
 
 T = {  # UI strings
@@ -209,7 +210,7 @@ def footer(lang):
     </div>
     <div>
       <h2 class="label">{t['treatments']}</h2>
-      <ul class="plain">{cats}<li><a href="{u('thera', lang)}">{'Sports &amp; therapeutic massage' if lang=='en' else 'Masaje deportivo y terapéutico'}</a></li></ul>
+      <ul class="plain">{cats}<li><a href="{u('thera', lang)}">{'Sports &amp; therapeutic massage' if lang=='en' else 'Masaje deportivo y terapéutico'}</a></li><li><a href="{u('lymph', lang)}">{'Lymphatic drainage in Tulum' if lang=='en' else 'Drenaje linfático en Tulum'}</a></li></ul>
     </div>
   </div>
   <div class="foot-bottom">
@@ -474,6 +475,7 @@ def build_svc(s, lang):
     <h2 class="label">{t['included']}</h2>
     <ul class="ticks">{inc}</ul>
     {adv}
+    {('<p><a href="' + u('lymph', lang) + '">' + ('Complete guide: lymphatic drainage massage in Tulum' if en else 'Guía completa: drenaje linfático en Tulum') + ' →</a></p>') if s['id'] == 5 else ''}
     <p class="cta-row"><a class="btn btn-ink btn-lg" href="{u('book', lang)}?service={s['id']}">{t['book_this']}</a> <a class="btn btn-line btn-lg" href="{wa(lang)}" rel="noopener">WhatsApp</a></p>
     <p class="small muted">{'Prefer the booking app?' if en else '¿Prefieres la app de reservas?'} <a href="{direct}" rel="noopener">{'Open in SimplyBook' if en else 'Abrir en SimplyBook'} ↗</a></p>
   </div>
@@ -522,7 +524,7 @@ def build_thera(lang):
         lis = "".join(f'<li><a href="{u("svc", lang, r)}">{e(name(r, lang))}</a> · {r["dur"]} {t["min"]} · {money(r["price"])}</li>' for r in recs)
         blocks += f"""<section class="concern" id="{key}"><h2>{a if en else b} <span class="in">{'in Tulum' if en else 'en Tulum'}</span></h2>
 <p>{e(ta if en else tb)}</p><p class="label">{'Recommended' if en else 'Recomendado'}</p><ul class="ticks">{lis}</ul>
-<a class="btn btn-ink" href="{u('book', lang)}?service={recs[0]['id']}">{t['book']}</a></section>"""
+<a class="btn btn-ink" href="{u('book', lang)}?service={recs[0]['id']}">{t['book']}</a>{(' <a class="btn btn-line" href="' + u('lymph', lang) + '">' + ('Full guide' if en else 'Guía completa') + ' →</a>') if key == 'lymphatic' else ''}</section>"""
     picks = [byid[i] for i in (31, 3, 5) if i in byid]
     qa = ([("Do you offer sports massage in Tulum?", "Yes. Our Muscle Recovery Massage (90 min) and Deep Tissue Massage are our sports massages: firm, targeted work for active bodies, in La Veleta, Tulum. Pair them with the hot sauna and cold hydropool."),
            ("Which massage is best for lower back pain?", "Deep Tissue is the usual choice for lower back tension; Hot Stone adds heat for stiff muscles; the 90-minute Muscle Recovery gives the most time on back, hips and glutes. Tell your therapist where it hurts."),
@@ -559,6 +561,110 @@ GOOD_FOR = {
     5: ("Fluid retention · swelling after flights or heat · post-workout lightness", "Retención de líquidos · inflamación tras vuelos o calor · ligereza post-entrenamiento"),
     7: ("Stiff muscles · lower back & neck tension · deep relaxation", "Músculos rígidos · tensión de espalda baja y cuello · relajación profunda"),
 }
+
+# ---------------------------------------------------------------- LYMPHATIC DRAINAGE GUIDE (landing page)
+LYMPH = {
+"en": dict(
+  title="Lymphatic Drainage Massage in Tulum | The Art Spa, La Veleta",
+  desc="Lymphatic drainage massage in Tulum: gentle manual technique for swelling, fluid retention and that heavy, puffy feeling after flights and heat. La Veleta, open daily 10–20.",
+  label="Lymphatic drainage · Tulum",
+  h1="Lymphatic drainage <em>massage</em> in Tulum",
+  glance="The Art Spa Tulum offers lymphatic drainage massage in La Veleta, Tulum: a {dur}-minute gentle, rhythmic manual massage that helps the body move excess fluid, easing swelling and puffiness. It costs {price}, is available every day from 10:00 to 20:00, and can be booked online or on WhatsApp.",
+  sections=[
+    ("What is lymphatic drainage massage?",
+     ["Lymphatic drainage (also called manual lymphatic drainage, or MLD) is a very gentle massage technique. Instead of working deep into the muscles, the therapist uses light, slow, rhythmic movements on the skin that follow the direction of the lymphatic system, towards the lymph nodes in the neck, armpits and groin.",
+      "The lymphatic system carries extra fluid and waste away from the tissues, but it has no pump of its own: it relies on movement, breathing and gentle pressure. A lymphatic massage gives it that help, which is why many people walk out feeling lighter, less swollen and less puffy."]),
+    ("Why people book it in Tulum",
+     ["Tulum is beautiful, but it is hard on the body in a very specific way. Heat and humidity make ankles and hands swell, long flights leave legs heavy, and days of biking, walking to cenotes, salty food and a few margaritas all add up.",
+      "Our guests usually book lymphatic drainage: after a long flight or bus ride to Tulum; when feet, ankles or legs feel swollen from the heat; before a wedding, event or photo shoot, to feel de-puffed; after workouts, retreats or yoga weeks, as a gentle recovery day; or simply to feel light and calm on vacation."]),
+    ("What to expect during your session",
+     ["You arrive a few minutes early, enjoy a cup of tea and tell your therapist how you feel and where you notice swelling. The massage itself is quiet and soothing: light, wave-like strokes, usually starting at the neck and moving through the arms, abdomen and legs, always in the direction the lymph naturally flows. It should never hurt; many guests fall asleep.",
+      "Afterwards, drink plenty of water. It is normal to need the bathroom more often in the following hours, and to feel lighter that same day. A short cold dip in our hydropool afterwards is a refreshing way to finish."]),
+    ("Lymphatic drainage, relaxing or deep tissue: which one?",
+     ["Choose lymphatic drainage if your main feeling is swelling, heaviness or puffiness. Choose a relaxing aromatherapy massage if you mostly want to unwind. Choose deep tissue or a muscle recovery massage if you have knots, tight muscles or back and neck pain. Not sure? Message us on WhatsApp and we'll help you pick."]),
+    ("When to check with your doctor first",
+     ["Lymphatic drainage is gentle, but it is not right for everyone. Please check with your doctor before booking, and tell us when you book, if you are pregnant, have recently had surgery, or have an infection or fever, a blood clot or history of thrombosis, heart or kidney problems, or are being treated for cancer.",
+      "If you are recovering from a cosmetic or other surgery and your doctor has recommended lymphatic massage, message us on WhatsApp before booking so we can talk about your recovery stage. Our massages support well-being but do not replace medical treatment."]),
+  ],
+  qa=[
+    ("How much is a lymphatic drainage massage in Tulum at The Art Spa?", "Our Lymphatic Drainage Massage costs {price} and lasts {dur} minutes. Prices are in Mexican pesos."),
+    ("Does lymphatic drainage massage hurt?", "No. The pressure is very light and the rhythm slow and soothing. If anything feels uncomfortable, tell your therapist and they will adjust."),
+    ("How soon will I notice a difference?", "Many people feel lighter and less swollen the same day. For ongoing fluid retention, a few sessions spaced over one or two weeks usually work better than a single one."),
+    ("Is it good after a long flight?", "Yes, it is one of the most common reasons guests book it. It helps with heavy legs and swollen ankles after flying or long journeys to Tulum."),
+    ("Can I get lymphatic drainage after surgery?", "Only with your surgeon's approval. Please message us on WhatsApp before booking and tell us what surgery you had and when, so we can advise you."),
+    ("Can I book lymphatic drainage while pregnant?", "Please check with your doctor first and tell us when booking. We will only go ahead with your doctor's approval."),
+    ("What should I do after the massage?", "Drink plenty of water, avoid alcohol for the rest of the day if you can, and enjoy the lighter feeling. A cold dip in our hydropool is a nice way to finish."),
+    ("Where are you and when are you open?", "The Art Spa Tulum is at {addr}, in La Veleta, Tulum. Open every day from 10:00 to 20:00. Book online for instant confirmation or message us on WhatsApp at {phone}."),
+  ],
+  cta="Book lymphatic drainage", more="Prefer to ask first? Message us on WhatsApp.", see="See the treatment", also="Pairs well with",
+),
+"es": dict(
+  title="Masaje de Drenaje Linfático en Tulum | The Art Spa",
+  desc="Masaje de drenaje linfático en Tulum: técnica manual suave para la inflamación, la retención de líquidos y la pesadez después de vuelos y calor. La Veleta, diario 10–20.",
+  label="Drenaje linfático · Tulum",
+  h1="Masaje de <em>drenaje linfático</em> en Tulum",
+  glance="The Art Spa Tulum ofrece masaje de drenaje linfático en La Veleta, Tulum: un masaje manual suave y rítmico de {dur} minutos que ayuda al cuerpo a eliminar el exceso de líquidos y alivia la inflamación. Cuesta {price}, está disponible todos los días de 10:00 a 20:00 y se reserva en línea o por WhatsApp.",
+  sections=[
+    ("¿Qué es el masaje de drenaje linfático?",
+     ["El drenaje linfático (también llamado drenaje linfático manual) es una técnica de masaje muy suave. En lugar de trabajar a profundidad en los músculos, la terapeuta usa movimientos ligeros, lentos y rítmicos sobre la piel, siguiendo la dirección del sistema linfático hacia los ganglios del cuello, las axilas y la ingle.",
+      "El sistema linfático se encarga de retirar el exceso de líquidos y desechos de los tejidos, pero no tiene bomba propia: depende del movimiento, la respiración y una presión suave. El masaje linfático le da esa ayuda, por eso muchas personas salen sintiéndose más ligeras y desinflamadas."]),
+    ("Por qué se reserva tanto en Tulum",
+     ["Tulum es hermoso, pero exige al cuerpo de una forma muy particular. El calor y la humedad inflaman tobillos y manos, los vuelos largos dejan las piernas pesadas, y los días de bici, caminatas a cenotes, comida salada y algunas margaritas se acumulan.",
+      "Nuestros clientes suelen reservar drenaje linfático: después de un vuelo o viaje largo a Tulum; cuando pies, tobillos o piernas se sienten hinchados por el calor; antes de una boda, evento o sesión de fotos, para sentirse desinflamados; después de entrenamientos, retiros o semanas de yoga, como día de recuperación suave; o simplemente para sentirse ligeros y tranquilos en vacaciones."]),
+    ("Qué esperar en tu sesión",
+     ["Llegas unos minutos antes, disfrutas un té y le cuentas a tu terapeuta cómo te sientes y dónde notas inflamación. El masaje es tranquilo y relajante: movimientos ligeros, como olas, que normalmente empiezan en el cuello y siguen por brazos, abdomen y piernas, siempre en la dirección natural de la linfa. Nunca debe doler; muchos clientes se quedan dormidos.",
+      "Después, toma mucha agua. Es normal ir más seguido al baño en las horas siguientes y sentirte más ligero ese mismo día. Un baño frío corto en nuestra hidroalberca es una forma refrescante de terminar."]),
+    ("Drenaje linfático, relajante o tejido profundo: ¿cuál elegir?",
+     ["Elige drenaje linfático si lo que más sientes es inflamación, pesadez o hinchazón. Elige un masaje relajante con aromaterapia si sobre todo quieres descansar. Elige tejido profundo o recuperación muscular si tienes nudos, músculos tensos o dolor de espalda y cuello. ¿No estás seguro? Escríbenos por WhatsApp y te ayudamos a elegir."]),
+    ("Cuándo consultar primero a tu médico",
+     ["El drenaje linfático es suave, pero no es para todos. Consulta a tu médico antes de reservar, y avísanos al reservar, si estás embarazada, tuviste una cirugía reciente, tienes una infección o fiebre, un coágulo o antecedentes de trombosis, problemas del corazón o los riñones, o estás en tratamiento contra el cáncer.",
+      "Si te estás recuperando de una cirugía estética u otra y tu médico te recomendó masaje linfático, escríbenos por WhatsApp antes de reservar para platicar sobre tu etapa de recuperación. Nuestros masajes apoyan el bienestar, pero no sustituyen un tratamiento médico."]),
+  ],
+  qa=[
+    ("¿Cuánto cuesta un masaje de drenaje linfático en Tulum en The Art Spa?", "Nuestro Masaje de Drenaje Linfático cuesta {price} y dura {dur} minutos. Precios en pesos mexicanos."),
+    ("¿El drenaje linfático duele?", "No. La presión es muy ligera y el ritmo lento y relajante. Si algo te incomoda, avísale a tu terapeuta y lo ajusta."),
+    ("¿Cuándo voy a notar la diferencia?", "Muchas personas se sienten más ligeras y desinflamadas el mismo día. Para la retención de líquidos constante, varias sesiones a lo largo de una o dos semanas funcionan mejor que una sola."),
+    ("¿Es bueno después de un vuelo largo?", "Sí, es una de las razones más comunes para reservarlo. Ayuda con las piernas pesadas y los tobillos hinchados después de volar o de viajes largos a Tulum."),
+    ("¿Puedo recibir drenaje linfático después de una cirugía?", "Solo con la aprobación de tu cirujano. Escríbenos por WhatsApp antes de reservar y cuéntanos qué cirugía tuviste y cuándo, para poder orientarte."),
+    ("¿Puedo reservar drenaje linfático si estoy embarazada?", "Consulta primero a tu médico y avísanos al reservar. Solo lo realizamos con la aprobación de tu médico."),
+    ("¿Qué hago después del masaje?", "Toma mucha agua, evita el alcohol el resto del día si puedes y disfruta la sensación de ligereza. Un baño frío en nuestra hidroalberca es una buena forma de terminar."),
+    ("¿Dónde están y qué horario tienen?", "The Art Spa Tulum está en {addr}, en La Veleta, Tulum. Abierto todos los días de 10:00 a 20:00. Reserva en línea con confirmación inmediata o escríbenos por WhatsApp al {phone}."),
+  ],
+  cta="Reservar drenaje linfático", more="¿Prefieres preguntar primero? Escríbenos por WhatsApp.", see="Ver el tratamiento", also="Combina bien con",
+),
+}
+
+def build_lymph(lang):
+    en = lang == "en"; L = LYMPH[lang]; t = T[lang]
+    byid = {x["id"]: x for x in SERVICES}
+    s = byid.get(5)
+    if not s: return
+    fill = lambda x: x.format(dur=s["dur"], price=money(s["price"]), addr=f"{SITE['street']}, {SITE['postal']}", phone=SITE["phone_display"])
+    qa = [(q, fill(a)) for q, a in L["qa"]]
+    secs = "".join(f'<section class="concern"><h2>{e(h)}</h2>' + "".join(f"<p>{e(p)}</p>" for p in ps) + "</section>" for h, ps in L["sections"])
+    pairs = [byid[i] for i in (18, 3, 31) if i in byid]
+    body = f"""<section class="page-head"><nav class="crumbs"><a href="{u('home', lang)}">{'Home' if en else 'Inicio'}</a> / <a href="{u('thera', lang)}">{'Therapeutic massage' if en else 'Masaje terapéutico'}</a></nav>
+<p class="label">{e(L['label'])}</p>
+<h1>{L['h1']}</h1>
+<p class="glance">{e(fill(L['glance']))}</p>
+<dl class="specs"><div><dt>{t['dur_label']}</dt><dd>{s['dur']} {t['min']}</dd></div><div><dt>{t['price_label']}</dt><dd>{money(s['price'])}</dd></div><div><dt>{t['hours']}</dt><dd>10:00–20:00</dd></div></dl>
+<p class="cta-row"><a class="btn btn-ink btn-lg" href="{u('book', lang)}?service=5">{e(L['cta'])}</a> <a class="btn btn-line btn-lg" href="{wa(lang)}" rel="noopener">WhatsApp</a></p>
+<p class="small muted"><a href="{u('svc', lang, s)}">{e(L['see'])} →</a></p></section>
+<figure class="section"><img src="{img(s)}" alt="{'Lymphatic drainage massage at The Art Spa Tulum, La Veleta' if en else 'Masaje de drenaje linfático en The Art Spa Tulum, La Veleta'}" width="1200" height="900" loading="lazy"></figure>
+<div class="section concerns">{secs}</div>
+<section class="section"><h2 class="label">FAQ</h2><div class="faq">{''.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in qa)}</div></section>
+<div class="band"><section class="section"><header class="sec-head"><h2>{e(L['also'])}</h2></header><div class="works cols3">{''.join(card(x, lang) for x in pairs)}</div></section></div>
+<section class="section center"><p class="cta-row center"><a class="btn btn-ink btn-lg" href="{u('book', lang)}?service=5">{e(L['cta'])}</a></p><p class="muted"><a href="{wa(lang)}" rel="noopener">{e(L['more'])}</a></p></section>
+{visit_block(lang)}"""
+    url = u("lymph", lang)
+    svc_ld = {"@context": "https://schema.org", "@type": "Service", "name": name(s, lang), "alternateName": ["Manual lymphatic drainage", "Lymphatic massage", "Drenaje linfático"],
+              "description": fill(L["glance"]), "serviceType": "Lymphatic drainage massage", "image": img(s), "url": D + url,
+              "provider": {"@id": D + "/#spa", "@type": "DaySpa", "name": SITE["name"], "address": address_ld(), "telephone": SITE["phone"]},
+              "areaServed": {"@type": "City", "name": "Tulum"},
+              "offers": {"@type": "Offer", "price": s["price"], "priceCurrency": "MXN", "availability": "https://schema.org/InStock", "url": D + u("book", lang) + "?service=5"}}
+    lds = [svc_ld, faq_ld(qa), crumbs_ld([("Home" if en else "Inicio", u("home", lang)), ("Therapeutic massage" if en else "Masaje terapéutico", u("thera", lang)), (name(s, lang), url)])]
+    write(url, head(lang, L["title"], L["desc"], u("lymph", "en"), u("lymph", "es"), lds, og_img=img(s)) + header(lang, u("lymph", "es" if en else "en"), "treatments") + body + footer(lang))
+    if en: PAGES.append((u("lymph", "en"), u("lymph", "es"), "0.8"))
 
 # ---------------------------------------------------------------- SPACE
 def build_space(lang):
@@ -712,7 +818,7 @@ def build_llms():
              _fill("- Price range: $450–$5,800 MXN. Massages from {MINM} MXN (60 min). Couples packages from {COUPLE} MXN for two."),
              "- Neighborhood: La Veleta, a few minutes from downtown Tulum and the Hotel Zone road", "",
              "## Pages",
-             f"- [Spa menu & prices]({D}/treatments/)", f"- [Sports & therapeutic massage: lymphatic drainage, muscle recovery, lower back & neck pain]({D}/therapeutic-massage/)", f"- [Book online]({D}/book/)", f"- [The space]({D}/the-space/)",
+             f"- [Spa menu & prices]({D}/treatments/)", f"- [Sports & therapeutic massage: lymphatic drainage, muscle recovery, lower back & neck pain]({D}/therapeutic-massage/)", f"- [Lymphatic drainage massage in Tulum: what it is, who it's for, price, FAQ]({D}/lymphatic-drainage-massage-tulum/)", f"- [Book online]({D}/book/)", f"- [The space]({D}/the-space/)",
              f"- [FAQ]({D}/faq/)", f"- [Contact]({D}/contact/)", f"- [Español]({D}/es/)", ""]
     for c in CAT.values():
         lines.append(f"## {c['en']}")
@@ -725,7 +831,7 @@ def build_llms():
 
 if __name__ == "__main__":
     for lang in ("en", "es"):
-        build_home(lang); build_treatments(lang); build_thera(lang); build_space(lang); build_book(lang); build_faq(lang); build_contact(lang)
+        build_home(lang); build_treatments(lang); build_thera(lang); build_lymph(lang); build_space(lang); build_book(lang); build_faq(lang); build_contact(lang)
         for c in CAT.values(): build_cat(c, lang)
         for s in SERVICES: build_svc(s, lang)
     build_404(); n = build_sitemap(); build_robots(); build_llms()
