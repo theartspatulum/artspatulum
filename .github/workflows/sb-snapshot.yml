@@ -1,0 +1,23 @@
+name: SimplyBook snapshot
+on:
+  workflow_dispatch:
+  push:
+    paths: ["build/sb-snapshot.trigger"]
+permissions:
+  contents: write
+jobs:
+  snap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download live SimplyBook services
+        run: |
+          curl -sSf -A "TheArtSpaTulum-site-build" https://theartspatulum.simplybook.me/v2/service/ -o build/sb-live.json
+          python3 -c "import json;d=json.load(open('build/sb-live.json'));d=d.get('data',d) if isinstance(d,dict) else d;print(len(d),'services')"
+      - name: Commit snapshot
+        run: |
+          git config user.name "sb-snapshot-bot"
+          git config user.email "bot@theartspatulum.mx"
+          git add build/sb-live.json
+          git commit -m "SimplyBook snapshot [skip netlify]" || echo "no changes"
+          git push
