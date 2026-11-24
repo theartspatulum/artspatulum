@@ -25,7 +25,7 @@ def _min_massage():
 def _price(i, default):
     x = next((s for s in SERVICES if s["id"] == i), None)
     return f"${x['price']:,}" if x else default
-_PV = {"{MINM}": None, "{RESET}": _price(26, "$1,249"), "{COUPLE}": _price(27, "$2,599"), "{SAUNA}": _price(18, "$600")}
+_PV = {"{MINM}": None, "{RESET}": _price(26, "$1,249"), "{COUPLE}": _price(27, "$2,599"), "{SAUNA}": _price(18, "$600"), "{FACIAL}": _price(19, "$1,250")}
 def _fill(t):
     for k, v in _PV.items(): t = t.replace(k, v if v else _min_massage())
     return t
@@ -362,8 +362,8 @@ def visit_block(lang):
 def build_treatments(lang):
     t = T[lang]; en = lang == "en"
     title = "Spa Menu & Prices | Massages, Facials & Rituals in Tulum — The Art Spa" if en else "Menú y Precios de Spa en Tulum | The Art Spa"
-    desc = ("Full spa menu with prices in MXN: massages from {MINM}, facials $1,199, couples rituals, body rituals, sauna & hydropool. La Veleta, Tulum."
-            if en else "Menú completo con precios en MXN: masajes desde {MINM}, faciales $1,199, rituales en pareja, rituales corporales, sauna e hidroalberca. La Veleta, Tulum.")
+    desc = _fill("Full spa menu with prices in MXN: massages from {MINM}, facials {FACIAL}, couples rituals, body rituals, sauna & hydropool. La Veleta, Tulum."
+            if en else "Menú completo con precios en MXN: masajes desde {MINM}, faciales {FACIAL}, rituales en pareja, rituales corporales, sauna e hidroalberca. La Veleta, Tulum.")
     secs = ""
     for c in CAT.values():
         rows = "".join(f"""<li><a href="{u('svc', lang, s)}"><span class="r-n">{t['plate']} {num(s)}</span><span class="r-t">{e(name(s, lang))}</span><span class="r-d">{s['dur']} {t['min']}</span><span class="r-p">{money(s['price'])}</span></a></li>"""
@@ -815,7 +815,7 @@ def build_llms():
              f"- Online booking: {D}/book/ (instant confirmation via SimplyBook.me)",
              f"- Instagram: {SITE['instagram']}",
              "- Facilities: private hot sauna, cold hydropool, massage rooms incl. couples suite, art gallery interior",
-             _fill("- Price range: $450–$5,800 MXN. Massages from {MINM} MXN (60 min). Couples packages from {COUPLE} MXN for two."),
+             _fill("- Price range: $550–$5,800 MXN. Massages from {MINM} MXN (60 min). Couples packages from {COUPLE} MXN for two."),
              "- Neighborhood: La Veleta, a few minutes from downtown Tulum and the Hotel Zone road", "",
              "## Pages",
              f"- [Spa menu & prices]({D}/treatments/)", f"- [Sports & therapeutic massage: lymphatic drainage, muscle recovery, lower back & neck pain]({D}/therapeutic-massage/)", f"- [Lymphatic drainage massage in Tulum: what it is, who it's for, price, FAQ]({D}/lymphatic-drainage-massage-tulum/)", f"- [Book online]({D}/book/)", f"- [The space]({D}/the-space/)",

@@ -15,7 +15,7 @@ const REBECA = [
   { re: /sauna/i, flat: 0, label: "Sauna (no commission)" },
   { re: /reset ritual/i, flat: 200, fl: 500 },
   { re: /glow ritual/i, flat: 200 },
-  { re: /^\s*(the\s+)?couple ritual\s*$/i, flat: 200, fl: 500, couple: true },   // two 60-min massages + free sauna
+  { re: /^\s*(the\s+)?couples? ritual\s*$/i, flat: 200, fl: 500, couple: true },   // two 60-min massages + free sauna
   { re: /couple/i, flat: 350, fl: 700, couple: true },                              // all other couples rituals
   { re: /cocoa embrace|clay wrap|rose ritual|pure hydration/i, flat: 350, fl: 700 },
   { re: /lymph/i, by: { 60: 300, 75: 350, 90: 400 } },
