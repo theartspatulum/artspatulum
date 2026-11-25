@@ -13,6 +13,7 @@ const minsBucket = (m) => (m >= 85 ? 90 : m >= 70 ? 75 : m >= 45 ? 60 : 30);
 // Rebeca's commission by treatment family and length
 const REBECA = [
   { re: /sauna/i, flat: 0, label: "Sauna (no commission)" },
+  { re: /coffee.*cacao|cacao hydration/i, flat: 250, fl: 600 },   // Coffee & Cacao Hydration Ritual: paid as a 75-min massage
   { re: /reset ritual/i, flat: 200, fl: 500 },
   { re: /glow ritual/i, flat: 200 },
   { re: /^\s*(the\s+)?couples? ritual\s*$/i, flat: 200, fl: 500, couple: true },   // two 60-min massages + free sauna
